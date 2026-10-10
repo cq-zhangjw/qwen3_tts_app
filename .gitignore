@@ -58,3 +58,7 @@ temp_readme.txt
 # per-agent runtime skill enablement set (regenerated on each agent build)
 .deepagents/skills/.enabled/
 whls/
+
+# Qwen3 TTS Studio runtime data (BSON db + generated audio)
+data/
+!data/**/.gitkeep
