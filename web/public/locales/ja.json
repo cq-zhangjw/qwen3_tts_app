@@ -1,0 +1,15 @@
+{
+    "login": {
+      "title": "ログイン",
+      "username": "ユーザ名",
+      "password": "パスワード",
+      "terms": "<a href='#'>ログイン条件</a>を読み、同意しました。",
+      "forgotPassword": "パスワードを忘れた？"
+    },
+    "header": {
+      "title": "agent-base"
+    },
+    "common": {
+      "copyright": "Copyright ©2025 by zhangjiawang.Email: 1593324992@qq.com"
+    }
+  }

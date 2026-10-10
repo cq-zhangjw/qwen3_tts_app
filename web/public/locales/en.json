@@ -1,0 +1,15 @@
+{
+    "login": {
+      "title": "Login",
+      "username": "Username",
+      "password": "Password",
+      "terms": "I have read and agree to the <a href='#'>Login Terms</a>",
+      "forgotPassword": "Forgot password?"
+    },
+    "header": {
+      "title": "agent-base"
+    },
+    "common": {
+      "copyright": "Copyright ©2025 by zhangjiawang.Email: 1593324992@qq.com"
+    }
+  }

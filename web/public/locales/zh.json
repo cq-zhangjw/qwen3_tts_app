@@ -1,0 +1,15 @@
+{
+    "login": {
+      "title": "登录",
+      "username": "用户名",
+      "password": "密码",
+      "terms": "我已阅读并同意 <a href='#'>登录条款</a>",
+      "forgotPassword": "忘记密码？"
+    },
+    "header": {
+      "title": "agent-base"
+    },
+    "common": {
+      "copyright": "Copyright ©2025 by zhangjiawang.Email: 1593324992@qq.com"
+    }
+  }

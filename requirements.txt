@@ -1,0 +1,8 @@
+./whls/torch-2.8.0+cu128-cp312-cp312-win_amd64.whl
+./whls/torchaudio-2.8.0+cu128-cp312-cp312-win_amd64.whl
+qwen-tts
+fastapi
+uvicorn[standard]
+soundfile
+numpy
+moofile
