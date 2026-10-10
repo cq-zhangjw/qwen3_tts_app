@@ -1,15 +1,122 @@
 {
-    "login": {
-      "title": "登录",
-      "username": "用户名",
-      "password": "密码",
-      "terms": "我已阅读并同意 <a href='#'>登录条款</a>",
-      "forgotPassword": "忘记密码？"
-    },
-    "header": {
-      "title": "agent-base"
-    },
-    "common": {
-      "copyright": "Copyright ©2025 by zhangjiawang.Email: 1593324992@qq.com"
-    }
+  "app": { "name": "Qwen3 TTS Studio" },
+  "nav": {
+    "studio": "合成台",
+    "voices": "音色库",
+    "clone": "音色克隆",
+    "design": "音色设计",
+    "history": "合成履历"
+  },
+  "common": {
+    "create": "创建",
+    "submit": "提交",
+    "delete": "删除",
+    "download": "下载",
+    "play": "播放",
+    "preview": "试听",
+    "search": "搜索",
+    "all": "全部",
+    "loading": "加载中…",
+    "cancel": "取消",
+    "confirm": "确认",
+    "save": "保存",
+    "name": "名称",
+    "status": "状态",
+    "createdAt": "创建时间",
+    "actions": "操作",
+    "refresh": "刷新",
+    "language": "语言",
+    "voice": "音色",
+    "text": "文本",
+    "seconds": "秒",
+    "gotoVoices": "前往音色库"
+  },
+  "status": {
+    "pending": "等待中",
+    "running": "合成中",
+    "completed": "已完成",
+    "failed": "失败",
+    "processing": "生成中",
+    "ready": "就绪"
+  },
+  "voiceType": {
+    "preset": "预设",
+    "clone": "克隆",
+    "design": "设计"
+  },
+  "lang": {
+    "zh": "中文",
+    "ja": "日本語",
+    "en": "English",
+    "auto": "自动混合"
+  },
+  "studio": {
+    "title": "文本转语音",
+    "textPlaceholder": "输入要合成的文本，支持中/日/英混合长文本…",
+    "charCount": "字数",
+    "selectVoice": "选择音色",
+    "languageMode": "语言模式",
+    "advanced": "高级选项",
+    "instructPlaceholder": "可选：临时语气指令，如“用激昂的语气说”",
+    "synthesize": "开始合成",
+    "result": "合成结果",
+    "emptyResult": "提交后，合成音频将在这里显示",
+    "inProgress": "正在合成，请稍候…",
+    "needText": "请输入文本",
+    "needVoice": "请选择音色",
+    "submitted": "已提交，可在履历中查看进度"
+  },
+  "voices": {
+    "title": "音色库",
+    "desc": "管理预设、克隆与设计的全部音色",
+    "filterAll": "全部",
+    "filterPreset": "预设音色",
+    "filterClone": "我的克隆",
+    "filterDesign": "我的设计",
+    "searchPlaceholder": "按名称搜索…",
+    "empty": "暂无音色",
+    "cannotDeletePreset": "预设音色不可删除",
+    "deleted": "已删除"
+  },
+  "clone": {
+    "title": "音色克隆",
+    "desc": "上传一段参考音频及其对应文本，提取声纹生成可复用音色",
+    "uploadLabel": "点击或拖拽上传参考音频",
+    "uploadHint": "支持 wav / mp3 / m4a",
+    "namePlaceholder": "给这个音色起个名字",
+    "refTextLabel": "参考音频对应的文本",
+    "refTextPlaceholder": "请逐字填写参考音频朗读的内容…",
+    "submit": "开始克隆",
+    "success": "克隆任务已提交，生成中…",
+    "needFile": "请上传参考音频",
+    "needRefText": "请填写参考文本"
+  },
+  "design": {
+    "title": "音色设计",
+    "desc": "用文字描述你想要的声音，AI 为你生成新音色",
+    "namePlaceholder": "音色名称",
+    "instructLabel": "音色描述",
+    "instructPlaceholder": "如：温柔、缓慢、充满关怀的女声",
+    "textLabel": "预览朗读文本",
+    "textPlaceholder": "输入一段用于试听新音色的文本…",
+    "languageLabel": "预览语言",
+    "submit": "生成音色",
+    "success": "设计任务已提交，生成中…"
+  },
+  "history": {
+    "title": "合成履历",
+    "desc": "查看每次合成使用的音色、文本、耗时与结果",
+    "empty": "暂无合成记录",
+    "voice": "音色",
+    "textPreview": "文本",
+    "duration": "音频时长",
+    "elapsed": "合成耗时",
+    "completedAt": "完成时间",
+    "deleteConfirm": "确定删除该记录及其音频？"
+  },
+  "header": {
+    "modelStatus": "模型状态",
+    "loaded": "已加载",
+    "notLoaded": "未加载"
   }
+}

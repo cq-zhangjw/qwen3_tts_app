@@ -1,15 +1,122 @@
 {
-    "login": {
-      "title": "Login",
-      "username": "Username",
-      "password": "Password",
-      "terms": "I have read and agree to the <a href='#'>Login Terms</a>",
-      "forgotPassword": "Forgot password?"
-    },
-    "header": {
-      "title": "agent-base"
-    },
-    "common": {
-      "copyright": "Copyright ©2025 by zhangjiawang.Email: 1593324992@qq.com"
-    }
+  "app": { "name": "Qwen3 TTS Studio" },
+  "nav": {
+    "studio": "Studio",
+    "voices": "Voice Library",
+    "clone": "Voice Clone",
+    "design": "Voice Design",
+    "history": "History"
+  },
+  "common": {
+    "create": "Create",
+    "submit": "Submit",
+    "delete": "Delete",
+    "download": "Download",
+    "play": "Play",
+    "preview": "Preview",
+    "search": "Search",
+    "all": "All",
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "name": "Name",
+    "status": "Status",
+    "createdAt": "Created",
+    "actions": "Actions",
+    "refresh": "Refresh",
+    "language": "Language",
+    "voice": "Voice",
+    "text": "Text",
+    "seconds": "s",
+    "gotoVoices": "Go to library"
+  },
+  "status": {
+    "pending": "Pending",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "processing": "Processing",
+    "ready": "Ready"
+  },
+  "voiceType": {
+    "preset": "Preset",
+    "clone": "Clone",
+    "design": "Design"
+  },
+  "lang": {
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "en": "English",
+    "auto": "Auto Mixed"
+  },
+  "studio": {
+    "title": "Text to Speech",
+    "textPlaceholder": "Enter text to synthesize; mixed zh/ja/en long text supported…",
+    "charCount": "chars",
+    "selectVoice": "Select voice",
+    "languageMode": "Language mode",
+    "advanced": "Advanced",
+    "instructPlaceholder": "Optional: tone instruction, e.g. speak enthusiastically",
+    "synthesize": "Synthesize",
+    "result": "Result",
+    "emptyResult": "The audio will appear here after submission",
+    "inProgress": "Synthesizing, please wait…",
+    "needText": "Please enter text",
+    "needVoice": "Please select a voice",
+    "submitted": "Submitted. Track progress in History."
+  },
+  "voices": {
+    "title": "Voice Library",
+    "desc": "Manage preset, cloned and designed voices",
+    "filterAll": "All",
+    "filterPreset": "Preset",
+    "filterClone": "My Clones",
+    "filterDesign": "My Designs",
+    "searchPlaceholder": "Search by name…",
+    "empty": "No voices yet",
+    "cannotDeletePreset": "Preset voices cannot be deleted",
+    "deleted": "Deleted"
+  },
+  "clone": {
+    "title": "Voice Clone",
+    "desc": "Upload a reference audio and its transcript to extract a reusable voice",
+    "uploadLabel": "Click or drag to upload reference audio",
+    "uploadHint": "wav / mp3 / m4a supported",
+    "namePlaceholder": "Name this voice",
+    "refTextLabel": "Reference transcript",
+    "refTextPlaceholder": "Transcribe exactly what the reference audio says…",
+    "submit": "Start Cloning",
+    "success": "Clone job submitted, processing…",
+    "needFile": "Please upload a reference audio",
+    "needRefText": "Please enter the reference transcript"
+  },
+  "design": {
+    "title": "Voice Design",
+    "desc": "Describe the voice you want; AI designs a new voice for you",
+    "namePlaceholder": "Voice name",
+    "instructLabel": "Voice description",
+    "instructPlaceholder": "e.g. a gentle, slow, caring female voice",
+    "textLabel": "Preview text",
+    "textPlaceholder": "Text used to preview the new voice…",
+    "languageLabel": "Preview language",
+    "submit": "Generate Voice",
+    "success": "Design job submitted, processing…"
+  },
+  "history": {
+    "title": "Synthesis History",
+    "desc": "Review voice, text, elapsed time and result of every synthesis",
+    "empty": "No records yet",
+    "voice": "Voice",
+    "textPreview": "Text",
+    "duration": "Duration",
+    "elapsed": "Elapsed",
+    "completedAt": "Completed",
+    "deleteConfirm": "Delete this record and its audio?"
+  },
+  "header": {
+    "modelStatus": "Models",
+    "loaded": "Loaded",
+    "notLoaded": "Not loaded"
   }
+}

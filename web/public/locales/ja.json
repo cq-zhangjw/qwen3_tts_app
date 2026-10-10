@@ -1,15 +1,122 @@
 {
-    "login": {
-      "title": "ログイン",
-      "username": "ユーザ名",
-      "password": "パスワード",
-      "terms": "<a href='#'>ログイン条件</a>を読み、同意しました。",
-      "forgotPassword": "パスワードを忘れた？"
-    },
-    "header": {
-      "title": "agent-base"
-    },
-    "common": {
-      "copyright": "Copyright ©2025 by zhangjiawang.Email: 1593324992@qq.com"
-    }
+  "app": { "name": "Qwen3 TTS Studio" },
+  "nav": {
+    "studio": "合成スタジオ",
+    "voices": "ボイスライブラリ",
+    "clone": "ボイスクローン",
+    "design": "ボイスデザイン",
+    "history": "合成履歴"
+  },
+  "common": {
+    "create": "作成",
+    "submit": "送信",
+    "delete": "削除",
+    "download": "ダウンロード",
+    "play": "再生",
+    "preview": "試聴",
+    "search": "検索",
+    "all": "すべて",
+    "loading": "読み込み中…",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "save": "保存",
+    "name": "名前",
+    "status": "状態",
+    "createdAt": "作成日時",
+    "actions": "操作",
+    "refresh": "更新",
+    "language": "言語",
+    "voice": "声",
+    "text": "テキスト",
+    "seconds": "秒",
+    "gotoVoices": "ライブラリへ"
+  },
+  "status": {
+    "pending": "待機中",
+    "running": "合成中",
+    "completed": "完了",
+    "failed": "失敗",
+    "processing": "生成中",
+    "ready": "準備完了"
+  },
+  "voiceType": {
+    "preset": "プリセット",
+    "clone": "クローン",
+    "design": "デザイン"
+  },
+  "lang": {
+    "zh": "中国語",
+    "ja": "日本語",
+    "en": "英語",
+    "auto": "自動混合"
+  },
+  "studio": {
+    "title": "テキスト読み上げ",
+    "textPlaceholder": "合成するテキストを入力してください。中/日/英の混在・長文に対応…",
+    "charCount": "文字",
+    "selectVoice": "声を選択",
+    "languageMode": "言語モード",
+    "advanced": "詳細設定",
+    "instructPlaceholder": "任意：トーンの指示（例：情熱的に話す）",
+    "synthesize": "合成開始",
+    "result": "合成結果",
+    "emptyResult": "送信後、ここに音声が表示されます",
+    "inProgress": "合成中です。しばらくお待ちください…",
+    "needText": "テキストを入力してください",
+    "needVoice": "声を選択してください",
+    "submitted": "送信しました。履歴で進捗を確認できます。"
+  },
+  "voices": {
+    "title": "ボイスライブラリ",
+    "desc": "プリセット・クローン・デザインした声を管理",
+    "filterAll": "すべて",
+    "filterPreset": "プリセット",
+    "filterClone": "マイクローン",
+    "filterDesign": "マイデザイン",
+    "searchPlaceholder": "名前で検索…",
+    "empty": "声がありません",
+    "cannotDeletePreset": "プリセット声は削除できません",
+    "deleted": "削除しました"
+  },
+  "clone": {
+    "title": "ボイスクローン",
+    "desc": "参考音声とその原稿をアップロードし、再利用可能な声を抽出します",
+    "uploadLabel": "クリックまたはドラッグで参考音声をアップロード",
+    "uploadHint": "wav / mp3 / m4a 対応",
+    "namePlaceholder": "この声の名前を入力",
+    "refTextLabel": "参考音声の原稿",
+    "refTextPlaceholder": "参考音声で読み上げている内容を正確に記入…",
+    "submit": "クローン開始",
+    "success": "クローンタスクを送信しました。生成中…",
+    "needFile": "参考音声をアップロードしてください",
+    "needRefText": "参考原稿を入力してください"
+  },
+  "design": {
+    "title": "ボイスデザイン",
+    "desc": "欲しい声を言葉で説明すると、AIが新しい声をデザインします",
+    "namePlaceholder": "声の名前",
+    "instructLabel": "声の説明",
+    "instructPlaceholder": "例：優しく、ゆっくり、思いやりのある女声",
+    "textLabel": "プレビュー用テキスト",
+    "textPlaceholder": "新しい声を試聴するためのテキスト…",
+    "languageLabel": "プレビュー言語",
+    "submit": "声を生成",
+    "success": "デザインタスクを送信しました。生成中…"
+  },
+  "history": {
+    "title": "合成履歴",
+    "desc": "各合成で使用した声・テキスト・処理時間・結果を確認",
+    "empty": "履歴はまだありません",
+    "voice": "声",
+    "textPreview": "テキスト",
+    "duration": "音声の長さ",
+    "elapsed": "処理時間",
+    "completedAt": "完了日時",
+    "deleteConfirm": "このレコードと音声を削除しますか？"
+  },
+  "header": {
+    "modelStatus": "モデル",
+    "loaded": "読込済み",
+    "notLoaded": "未読込"
   }
+}
