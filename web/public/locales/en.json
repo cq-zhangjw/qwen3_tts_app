@@ -5,7 +5,8 @@
     "voices": "Voice Library",
     "clone": "Voice Clone",
     "design": "Voice Design",
-    "history": "History"
+    "history": "History",
+    "novel": "Novel Dubbing"
   },
   "common": {
     "create": "Create",
@@ -118,5 +119,27 @@
     "modelStatus": "Models",
     "loaded": "Loaded",
     "notLoaded": "Not loaded"
+  },
+  "novel": {
+    "title": "Novel Dubbing",
+    "desc": "Upload a novel text; auto-analyze characters, assign voices, dub line by line and merge into a full audio",
+    "upload": "Upload novel (.txt)",
+    "uploadHint": "Choose a plain text file; characters are auto-analyzed and lines split",
+    "characters": "Character Voices",
+    "lines": "Lines",
+    "dubAll": "Start Dubbing",
+    "redub": "Redub",
+    "assemble": "Merge Audio",
+    "download": "Download Full Audio",
+    "resplit": "Re-split",
+    "progress": "Progress",
+    "type": "Type",
+    "narration": "Narration",
+    "dialogue": "Dialogue",
+    "sfx": "SFX",
+    "noProject": "No projects yet. Upload to start.",
+    "dubbing": "Dubbing",
+    "done": "Dubbing done",
+    "finalReady": "Full audio is ready to download"
   }
 }

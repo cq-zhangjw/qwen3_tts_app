@@ -27,6 +27,24 @@ export const listTasks = (params?: { page?: number; page_size?: number; status?:
 export const getTask = (id: string) => api.get(`/tts/tasks/${id}`).then(r => r.data)
 export const deleteTask = (id: string) => api.delete(`/tts/tasks/${id}`).then(r => r.data)
 
+// ---- novel dubbing ----
+export const uploadNovel = (form: FormData) =>
+  api.post('/novel/projects', form).then(r => r.data)
+export const listNovels = () => api.get('/novel/projects').then(r => r.data)
+export const getNovel = (id: string) => api.get(`/novel/projects/${id}`).then(r => r.data)
+export const updateNovelCharacters = (id: string, characters: any[]) =>
+  api.patch(`/novel/projects/${id}/characters`, { characters }).then(r => r.data)
+export const resplitNovel = (id: string) => api.post(`/novel/projects/${id}/split`).then(r => r.data)
+export const dubNovel = (id: string) => api.post(`/novel/projects/${id}/dub`).then(r => r.data)
+export const redubNovelLine = (id: string, lid: string) =>
+  api.post(`/novel/projects/${id}/lines/${lid}/redub`).then(r => r.data)
+export const editNovelLine = (id: string, lid: string, body: any) =>
+  api.patch(`/novel/projects/${id}/lines/${lid}`, body).then(r => r.data)
+export const deleteNovelLine = (id: string, lid: string) =>
+  api.delete(`/novel/projects/${id}/lines/${lid}`).then(r => r.data)
+export const assembleNovel = (id: string) => api.post(`/novel/projects/${id}/assemble`).then(r => r.data)
+export const deleteNovel = (id: string) => api.delete(`/novel/projects/${id}`).then(r => r.data)
+
 // audio url helper
 export const audioUrl = (url?: string | null) => (url ? url : '')
 

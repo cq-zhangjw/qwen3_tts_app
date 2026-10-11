@@ -4,7 +4,8 @@ const routes = [
   { path: '/', name: 'studio', component: () => import('../pages/StudioPage.vue') },
   { path: '/voices', name: 'voices', component: () => import('../pages/VoicesPage.vue') },
   { path: '/clone', name: 'clone', component: () => import('../pages/ClonePage.vue') },
-  { path: '/design', name: 'design', component: () => import('../pages/DesignPage.vue') }
+  { path: '/design', name: 'design', component: () => import('../pages/DesignPage.vue') },
+  { path: '/novel', name: 'novel', component: () => import('../pages/NovelPage.vue') }
 ];
 
 const router = createRouter({

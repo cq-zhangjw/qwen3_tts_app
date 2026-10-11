@@ -5,7 +5,8 @@
     "voices": "音色库",
     "clone": "音色克隆",
     "design": "音色设计",
-    "history": "合成履历"
+    "history": "合成履历",
+    "novel": "小说配音"
   },
   "common": {
     "create": "创建",
@@ -118,5 +119,27 @@
     "modelStatus": "模型状态",
     "loaded": "已加载",
     "notLoaded": "未加载"
+  },
+  "novel": {
+    "title": "小说配音",
+    "desc": "上传小说文本，自动分析角色、分配音色、逐句配音并拼接成完整音频",
+    "upload": "上传小说 (.txt)",
+    "uploadHint": "选择一本纯文本文档，自动分析角色并拆句",
+    "characters": "角色音色",
+    "lines": "句子",
+    "dubAll": "开始配音",
+    "redub": "重配",
+    "assemble": "合成音频",
+    "download": "下载完整音频",
+    "resplit": "重新拆句",
+    "progress": "进度",
+    "type": "类型",
+    "narration": "旁白",
+    "dialogue": "对话",
+    "sfx": "环境音",
+    "noProject": "暂无小说项目，上传开始",
+    "dubbing": "配音中",
+    "done": "配音完成",
+    "finalReady": "完整音频已生成，可下载"
   }
 }

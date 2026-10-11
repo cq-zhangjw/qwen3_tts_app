@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { NIcon } from 'naive-ui'
 import {
   MicOutline, PeopleOutline, CopyOutline, ColorWandOutline,
-  LanguageOutline, SparklesOutline
+  LanguageOutline, SparklesOutline, BookOutline
 } from '@vicons/ionicons5'
 import { getSystemInfo } from './api'
 
@@ -23,7 +23,8 @@ const menuItems = computed(() => [
   { label: t('nav.studio'), key: 'studio', icon: () => h(NIcon, null, { default: () => h(MicOutline) }) },
   { label: t('nav.voices'), key: 'voices', icon: () => h(NIcon, null, { default: () => h(PeopleOutline) }) },
   { label: t('nav.clone'), key: 'clone', icon: () => h(NIcon, null, { default: () => h(CopyOutline) }) },
-  { label: t('nav.design'), key: 'design', icon: () => h(NIcon, null, { default: () => h(ColorWandOutline) }) }
+  { label: t('nav.design'), key: 'design', icon: () => h(NIcon, null, { default: () => h(ColorWandOutline) }) },
+  { label: t('nav.novel'), key: 'novel', icon: () => h(NIcon, null, { default: () => h(BookOutline) }) }
 ])
 
 const langOptions = [

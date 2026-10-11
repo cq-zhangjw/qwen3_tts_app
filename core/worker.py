@@ -60,6 +60,10 @@ def _dispatch(job: dict) -> None:
         _run_clone(job)
     elif kind == "design":
         _run_design(job)
+    elif kind == "novel_line":
+        _run_novel_line(job)
+    elif kind == "novel_assemble":
+        _run_novel_assemble(job)
     else:
         logger.warning("unknown job kind: %s", kind)
 
@@ -157,6 +161,53 @@ def _run_design(job: dict) -> None:
         created[f"audio_url_{lang}"] = f"/audio/{new_name}"
     created["audio_url"] = created["audio_url_zh"]
     db.update_voice(voice_id, {k: v for k, v in created.items() if k != "id"})
+
+
+def _run_novel_line(job: dict) -> None:
+    from core import novel as novel_svc
+    pid = job["project_id"]
+    p = db.get_novel_project(pid)
+    if not p:
+        return
+    # pick target line: explicit line_id (redub) else first pending/failed
+    line = None
+    if job.get("line_id"):
+        line = next((l for l in p["lines"] if l["id"] == job["line_id"]), None)
+    else:
+        line = next((l for l in p["lines"] if l["status"] in ("pending", "failed")), None)
+    if not line:
+        # no more lines → mark project ready
+        db.update_novel_project(pid, {"status": "ready", "updated_at": now_iso()})
+        return
+    line["status"] = "running"
+    db.update_novel_project(pid, {"lines": p["lines"]})
+    try:
+        novel_svc.dub_line(p, line)
+    except Exception as exc:  # noqa: BLE001
+        line["status"] = "failed"
+        line["error"] = str(exc)
+        logger.warning("novel line %s failed: %s", line["id"], exc)
+    db.update_novel_project(pid, {"lines": p["lines"], "updated_at": now_iso()})
+    # chain next pending line
+    nxt = next((l for l in p["lines"] if l["status"] in ("pending", "failed")), None)
+    if nxt:
+        enqueue({"kind": "novel_line", "project_id": pid})
+    else:
+        db.update_novel_project(pid, {"status": "ready", "updated_at": now_iso()})
+
+
+def _run_novel_assemble(job: dict) -> None:
+    from core import novel as novel_svc
+    pid = job["project_id"]
+    p = db.get_novel_project(pid)
+    if not p:
+        return
+    try:
+        url = novel_svc.assemble(p)
+        db.update_novel_project(pid, {"status": "done", "final_audio_url": url, "updated_at": now_iso()})
+    except Exception as exc:  # noqa: BLE001
+        db.update_novel_project(pid, {"status": "failed", "updated_at": now_iso()})
+        logger.warning("assemble failed: %s", exc)
 
 
 def _handle_job_error(job: dict, message: str) -> None:

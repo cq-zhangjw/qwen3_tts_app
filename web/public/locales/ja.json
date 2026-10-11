@@ -5,7 +5,8 @@
     "voices": "ボイスライブラリ",
     "clone": "ボイスクローン",
     "design": "ボイスデザイン",
-    "history": "合成履歴"
+    "history": "合成履歴",
+    "novel": "小説吹き込み"
   },
   "common": {
     "create": "作成",
@@ -118,5 +119,27 @@
     "modelStatus": "モデル",
     "loaded": "読込済み",
     "notLoaded": "未読込"
+  },
+  "novel": {
+    "title": "小説吹き込み",
+    "desc": "小説テキストをアップロードし、登場人物を自動分析、声を割り当て、1文ずつ吹き込んで結合します",
+    "upload": "小説をアップロード (.txt)",
+    "uploadHint": "プレーンテキストを選択すると、登場人物を自動分析して文を分割します",
+    "characters": "キャラクターの声",
+    "lines": "文",
+    "dubAll": "吹き込み開始",
+    "redub": "吹き直し",
+    "assemble": "音声結合",
+    "download": "完全版をダウンロード",
+    "resplit": "分割し直す",
+    "progress": "進捗",
+    "type": "種別",
+    "narration": "ナレーション",
+    "dialogue": "会話",
+    "sfx": "環境音",
+    "noProject": "プロジェクトがありません。アップロードして開始",
+    "dubbing": "吹き込み中",
+    "done": "吹き込み完了",
+    "finalReady": "完全版音声をダウンロードできます"
   }
 }

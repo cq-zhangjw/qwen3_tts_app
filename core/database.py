@@ -13,6 +13,7 @@ _COLLECTION_LOCK = threading.RLock()
 # Collection names
 VOICES = "voices"
 TASKS = "tasks"
+NOVEL_PROJECTS = "novel_projects"
 
 
 class _DB:
@@ -22,7 +23,7 @@ class _DB:
 
     def _init_collections(self) -> None:
         settings.ensure_dirs()
-        for name in (VOICES, TASKS):
+        for name in (VOICES, TASKS, NOVEL_PROJECTS):
             if not self.util.database_exists(name):
                 self.util.create_database(name)
 
@@ -83,6 +84,27 @@ class _DB:
     def delete_task(self, task_id: str) -> None:
         with _COLLECTION_LOCK:
             self.util.delete_data(TASKS, {"id": task_id}, indexes=["id"])
+
+    # ---- novel projects ----
+    def list_novel_projects(self) -> list[dict]:
+        rows = self.util.query_data(NOVEL_PROJECTS, {}, indexes=["id"])
+        return sorted(rows, key=lambda r: r.get("created_at", ""), reverse=True)
+
+    def get_novel_project(self, pid: str) -> dict | None:
+        rows = self.util.query_data(NOVEL_PROJECTS, {"id": pid}, indexes=["id"])
+        return rows[0] if rows else None
+
+    def insert_novel_project(self, p: dict) -> None:
+        with _COLLECTION_LOCK:
+            self.util.insert_data(NOVEL_PROJECTS, [p], indexes=["id"])
+
+    def update_novel_project(self, pid: str, update: dict) -> None:
+        with _COLLECTION_LOCK:
+            self.util.update_data(NOVEL_PROJECTS, {"id": pid}, update, indexes=["id"])
+
+    def delete_novel_project(self, pid: str) -> None:
+        with _COLLECTION_LOCK:
+            self.util.delete_data(NOVEL_PROJECTS, {"id": pid}, indexes=["id"])
 
 
 db = _DB()

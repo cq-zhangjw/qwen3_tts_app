@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from api import system, voices, tts
+from api import system, voices, tts, novel
 from core.config import settings
 from core import worker
 
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(system.router)
 app.include_router(voices.router)
 app.include_router(tts.router)
+app.include_router(novel.router)
 
 
 @app.on_event("startup")
