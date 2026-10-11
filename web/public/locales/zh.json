@@ -9,6 +9,7 @@
     "novel": "小说配音"
   },
   "common": {
+    "language": "语言",
     "create": "创建",
     "submit": "提交",
     "delete": "删除",
@@ -90,7 +91,11 @@
     "submit": "开始克隆",
     "success": "克隆任务已提交，生成中…",
     "needFile": "请上传参考音频",
-    "needRefText": "请填写参考文本"
+    "needRefText": "请填写参考文本",
+    "usePreset": "填入示例文本",
+    "audioSource": "音频来源（录音或上传）",
+    "startRec": "● 开始录音",
+    "stopRec": "■ 停止录音"
   },
   "design": {
     "title": "音色设计",
@@ -146,6 +151,9 @@
     "stepLines": "拆句确认",
     "stepDub": "配音合成",
     "next": "下一步",
-    "prev": "上一步"
+    "prev": "上一步",
+    "analyzeBtn": "AI 分析角色",
+    "splitBtn": "AI 一键拆句",
+    "voices": "音色分配"
   }
 }

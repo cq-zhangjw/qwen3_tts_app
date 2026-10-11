@@ -102,6 +102,7 @@ async def create_clone(
     file: UploadFile = File(...),
     name: str = Form(...),
     ref_text: str = Form(...),
+    language: str = Form("zh"),
 ):
     ext = os.path.splitext(file.filename or "audio.wav")[1] or ".wav"
     voice_id = f"v_clone_{uuid.uuid4().hex[:10]}"
@@ -113,7 +114,7 @@ async def create_clone(
         "id": voice_id,
         "name": name,
         "type": "clone",
-        "language": "auto",
+        "language": language,
         "description": "",
         "ref_audio": str(save_path),
         "ref_text": ref_text,

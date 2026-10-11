@@ -60,6 +60,77 @@ def _chunk_text(text: str, max_chars: int = 2500) -> list[str]:
     return chunks
 
 
+def analyze_characters_llm(text: str) -> list[dict]:
+    """Step 2: LLM extract characters only (chunked)."""
+    try:
+        from utils.llm_util import llm_analyze_chunk
+        chunks = _chunk_text(text)
+        char_map: dict[str, dict] = {}
+        for ch in chunks:
+            result = llm_analyze_chunk(ch, known_characters=list(char_map.keys()) or None)
+            for c in result.get("characters", []):
+                name = c.get("name", "").strip()
+                if name and name not in char_map:
+                    char_map[name] = c
+        out = []
+        for i, (name, c) in enumerate(char_map.items()):
+            is_narr = name == "旁白"
+            out.append({
+                "id": NARRATOR_ID if is_narr else f"c_{uuid.uuid4().hex[:8]}",
+                "name": name,
+                "color": "#64748b" if is_narr else PALETTE[i % len(PALETTE)],
+                "voice_id": "preset:novel_m_uncle",
+                "instruct": "用平稳舒缓、清晰的叙述语气朗读" if is_narr else None,
+                "gender": c.get("gender"),
+            })
+        # narrator always present
+        if not any(x["name"] == "旁白" for x in out):
+            out.append({
+                "id": NARRATOR_ID, "name": "旁白", "color": "#64748b",
+                "voice_id": "preset:novel_m_uncle",
+                "instruct": "用平稳舒缓、清晰的叙述语气朗读", "gender": None,
+            })
+        return out
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("LLM analyze failed, fallback: %s", exc)
+        return analyze_characters(text)
+
+
+def split_lines_llm(text: str, characters: list[dict]) -> list[dict]:
+    """Step 3: LLM split lines, assigning to known characters."""
+    try:
+        from utils.llm_util import llm_analyze_chunk
+        known = [c["name"] for c in characters]
+        name_to_id = {c["name"]: c["id"] for c in characters}
+        chunks = _chunk_text(text)
+        raw_lines: list[dict] = []
+        for ch in chunks:
+            result = llm_analyze_chunk(ch, known_characters=known)
+            raw_lines.extend(result.get("lines", []))
+        out = []
+        for i, l in enumerate(raw_lines, 1):
+            speaker = (l.get("speaker") or "旁白").strip()
+            cid = name_to_id.get(speaker, NARRATOR_ID)
+            ltype = l.get("type", "narration")
+            if ltype not in ("narration", "dialogue", "sfx"):
+                ltype = "narration"
+            out.append({
+                "id": f"L{i:04d}",
+                "text": (l.get("text") or "").strip(),
+                "character_id": cid,
+                "type": ltype,
+                "instruct": l.get("instruct") or None,
+                "status": "pending",
+                "audio_url": None,
+                "duration_sec": None,
+                "error": None,
+            })
+        return out
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("LLM split failed, fallback: %s", exc)
+        return split_lines(text, characters)
+
+
 def analyze_and_split_llm(text: str) -> tuple[list[dict], list[dict]]:
     """LLM-driven: returns (characters, lines). Chunks long text; falls back
     to rule-based on any error."""

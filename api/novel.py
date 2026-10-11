@@ -36,22 +36,46 @@ async def create_project(file: UploadFile = File(...)):
     if not raw:
         raise HTTPException(status_code=400, detail="empty file")
     pid = f"np_{uuid.uuid4().hex[:10]}"
-    characters, lines = novel_svc.analyze_and_split_llm(raw)
     project = {
         "id": pid,
         "filename": file.filename or "novel.txt",
         "raw_text": raw,
-        "characters": characters,
-        "lines": lines,
-        "status": "idle",
-        "done_count": len(lines),
-        "total_count": len(lines),
+        "characters": [],
+        "lines": [],
+        "status": "uploaded",
+        "done_count": 0,
+        "total_count": 0,
         "final_audio_url": None,
         "created_at": now_iso(),
         "updated_at": now_iso(),
     }
     db.insert_novel_project(project)
     return ok(project)
+
+
+@router.post("/projects/{pid}/analyze")
+def analyze_project(pid: str):
+    """Step 2: LLM extract characters only."""
+    p = _load(pid)
+    characters = novel_svc.analyze_characters_llm(p["raw_text"])
+    p["characters"] = characters
+    p["status"] = "characters"
+    db.update_novel_project(pid, {"characters": characters, "status": "characters", "updated_at": now_iso()})
+    return ok(p)
+
+
+@router.post("/projects/{pid}/split")
+def split_project(pid: str):
+    """Step 3: LLM split lines using existing characters."""
+    p = _load(pid)
+    if not p["characters"]:
+        raise HTTPException(status_code=400, detail="analyze characters first")
+    lines = novel_svc.split_lines_llm(p["raw_text"], p["characters"])
+    p["lines"] = lines
+    p["status"] = "ready"
+    _recount(p)
+    db.update_novel_project(pid, {"lines": lines, "status": "ready", "updated_at": now_iso()})
+    return ok(p)
 
 
 @router.get("/projects")

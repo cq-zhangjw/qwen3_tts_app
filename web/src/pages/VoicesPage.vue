@@ -110,7 +110,10 @@ function typeTagType(type: string) {
                 <div style="flex:1; min-width:0">
                   <div style="display:flex; justify-content:space-between; align-items:center">
                     <strong>{{ v.name }}</strong>
-                    <n-tag size="tiny" :type="typeTagType(v.type)">{{ t(`voiceType.${v.type}`) }}</n-tag>
+                    <n-space :size="4">
+                      <n-tag size="tiny" bordered>{{ v.language === 'ja' ? '日本語' : v.language === 'en' ? 'EN' : v.language === 'auto' ? 'Auto' : '中文' }}</n-tag>
+                      <n-tag size="tiny" :type="typeTagType(v.type)">{{ t(`voiceType.${v.type}`) }}</n-tag>
+                    </n-space>
                   </div>
                   <div style="color:#64748b; font-size:12px; margin-top:4px">
                     {{ v.description || v.instruct || v.speaker || '' }}

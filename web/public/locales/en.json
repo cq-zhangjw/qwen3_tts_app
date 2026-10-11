@@ -90,7 +90,11 @@
     "submit": "Start Cloning",
     "success": "Clone job submitted, processing…",
     "needFile": "Please upload a reference audio",
-    "needRefText": "Please enter the reference transcript"
+    "needRefText": "Please enter the reference transcript",
+    "usePreset": "Use sample text",
+    "audioSource": "Source (record or upload)",
+    "startRec": "● Record",
+    "stopRec": "■ Stop"
   },
   "design": {
     "title": "Voice Design",
@@ -146,6 +150,9 @@
     "stepLines": "Review Lines",
     "stepDub": "Dub & Assemble",
     "next": "Next",
-    "prev": "Back"
+    "prev": "Back",
+    "analyzeBtn": "AI Analyze Characters",
+    "splitBtn": "AI Split Lines",
+    "voices": "Voice Assignment"
   }
 }

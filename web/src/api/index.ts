@@ -35,6 +35,8 @@ export const getNovel = (id: string) => api.get(`/novel/projects/${id}`).then(r 
 export const updateNovelCharacters = (id: string, characters: any[]) =>
   api.patch(`/novel/projects/${id}/characters`, { characters }).then(r => r.data)
 export const resplitNovel = (id: string) => api.post(`/novel/projects/${id}/split`).then(r => r.data)
+export const analyzeNovel = (id: string) => api.post(`/novel/projects/${id}/analyze`).then(r => r.data)
+export const splitNovel = (id: string) => api.post(`/novel/projects/${id}/split`).then(r => r.data)
 export const addNovelCharacter = (id: string, body: { name: string; voice_id?: string; instruct?: string }) =>
   api.post(`/novel/projects/${id}/characters`, body).then(r => r.data)
 export const dubNovel = (id: string) => api.post(`/novel/projects/${id}/dub`).then(r => r.data)

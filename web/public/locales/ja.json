@@ -90,7 +90,11 @@
     "submit": "クローン開始",
     "success": "クローンタスクを送信しました。生成中…",
     "needFile": "参考音声をアップロードしてください",
-    "needRefText": "参考原稿を入力してください"
+    "needRefText": "参考原稿を入力してください",
+    "usePreset": "サンプル例文を使う",
+    "audioSource": "音声ソース（録音またはアップロード）",
+    "startRec": "● 録音開始",
+    "stopRec": "■ 停止"
   },
   "design": {
     "title": "ボイスデザイン",
@@ -146,6 +150,9 @@
     "stepLines": "文の確認",
     "stepDub": "吹き込み・結合",
     "next": "次へ",
-    "prev": "戻る"
+    "prev": "戻る",
+    "analyzeBtn": "AI キャラ分析",
+    "splitBtn": "AI 文分割",
+    "voices": "声の割り当て"
   }
 }
