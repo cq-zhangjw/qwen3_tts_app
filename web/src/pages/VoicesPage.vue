@@ -75,6 +75,16 @@ async function onDelete(v: any) {
 function typeTagType(type: string) {
   return type === 'preset' ? 'info' : type === 'clone' ? 'success' : 'warning'
 }
+
+const PREVIEW_SAMPLES: Record<string, string> = {
+  zh: '你好，很高兴认识你，欢迎来到我的小世界。',
+  en: 'Hello, nice to meet you. Welcome to my little world.',
+  ja: 'こんにちは、はじめまして。よろしくお願いします。',
+}
+function previewText(v: any) {
+  const lang = v.language === 'ja' ? 'ja' : v.language === 'en' ? 'en' : 'zh'
+  return PREVIEW_SAMPLES[lang] || PREVIEW_SAMPLES.zh
+}
 </script>
 
 <template>
@@ -117,6 +127,9 @@ function typeTagType(type: string) {
                   </div>
                   <div style="color:#64748b; font-size:12px; margin-top:4px">
                     {{ v.description || v.instruct || v.speaker || '' }}
+                  </div>
+                  <div style="color:#94a3b8; font-size:11px; margin-top:6px; padding:6px 8px; background:#f8fafc; border-radius:6px; font-style:italic">
+                    📢 {{ previewText(v) }}
                   </div>
                 </div>
               </div>

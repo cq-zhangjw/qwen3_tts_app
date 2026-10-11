@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, h, onMounted, onUnmounted, ref } from 'vue'
-import { NTag, NButton, NProgress, NSelect, NInput, useMessage, NDropdown } from 'naive-ui'
+import { NTag, NButton, NProgress, NSelect, NInput, useMessage, NDropdown, NTooltip } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import {
   uploadNovel, listNovels, getNovel, dubNovel, redubNovelLine, editNovelLine,
@@ -197,10 +197,23 @@ function playLine(line: any) {
   audio.onended = () => playingId.value = null
   audio.play()
 }
+const playingLineId = ref<string | null>(null)
+let currentAudio: HTMLAudioElement | null = null
+
+function stopPlayback() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null }
+  playingLineId.value = null
+}
+
 function playLineFromProject(pid: string, line: any) {
   if (!line.audio_url) return
-  const audio = new Audio(line.audio_url)
-  audio.play()
+  // toggle: if playing this line, stop
+  if (playingLineId.value === line.id) { stopPlayback(); return }
+  stopPlayback()
+  playingLineId.value = line.id
+  currentAudio = new Audio(line.audio_url)
+  currentAudio.onended = () => { playingLineId.value = null; currentAudio = null }
+  currentAudio.play()
 }
 
 const doneCount = computed(() => current.value?.lines?.filter((l: any) => l.status === 'done').length || 0)
@@ -241,42 +254,31 @@ function fmtDur(sec?: number) {
 function renderExpandRow(p: any) {
   const lines = p.lines || []
   const charOptions = (p.characters || []).map((c: any) => ({ label: c.name, value: c.id }))
+  const iconBtn = (icon: string, tip: string, onClick: () => void, disabled = false, color = '#6366f1') =>
+    h(NTooltip, { trigger: 'hover' }, {
+      trigger: () => h('button', {
+        style: `font-size:13px;width:24px;height:24px;border-radius:4px;border:1px solid #e2e8f0;background:#fff;cursor:${disabled ? 'not-allowed' : 'pointer'};color:${disabled ? '#cbd5e1' : color};display:inline-flex;align-items:center;justify-content:center;`,
+        disabled, onClick,
+      }, icon),
+      default: () => tip,
+    })
   return h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:8px;max-height:300px;overflow-y:auto' }, [
     ...lines.map((l: any) => {
-      const cname = charName(p, l.character_id)
       const cgender = charGender(p, l.character_id)
+      const isPlaying = playingLineId.value === l.id
       return h('div', { key: l.id, style: 'padding:8px 0;border-bottom:1px solid #e2e8f0' }, [
-        // top row: status tag + type tag + text + action buttons
         h('div', { style: 'display:flex;gap:8px;align-items:flex-start;font-size:12px' }, [
           h(NTag, { size: 'tiny', type: statusType(l.status), style: 'flex-shrink:0;margin-top:3px' }, { default: () => l.status }),
           h(NTag, { size: 'tiny', type: typeTag(l.type), style: 'flex-shrink:0;margin-top:3px' }, { default: () => t(`novel.${l.type}`) }),
-          h('div', { style: 'flex:1;min-width:0' }, [
-            h('div', { style: 'color:#334155;line-height:1.5' }, l.text),
-          ]),
-          // action buttons - text style
+          h('div', { style: 'flex:1;min-width:0;color:#334155;line-height:1.5' }, l.text),
           h('div', { style: 'display:flex;gap:4px;flex-shrink:0' }, [
-            h('button', {
-              style: 'font-size:11px;padding:1px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;color:#6366f1;',
-              disabled: !l.audio_url,
-              onClick: () => playLineFromProject(p.id, l)
-            }, t('common.play') || '播放'),
-            h('a', {
-              href: l.audio_url ? `/api/novel/projects/${p.id}/lines/${l.id}/audio` : '#',
-              download: l.audio_url ? `line_${l.id}.wav` : null,
-              style: `font-size:11px;padding:1px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#475569;text-decoration:none;${!l.audio_url ? 'opacity:0.4;pointer-events:none' : ''}`
-            }, t('common.download') || '下载'),
-            h('button', {
-              style: 'font-size:11px;padding:1px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;color:#f59e0b;',
-              onClick: () => redubFromProject(p.id, l)
-            }, t('novel.redub') || '重配'),
-            h('button', {
-              style: 'font-size:11px;padding:1px 8px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;color:#ef4444;',
-              onClick: () => onDeleteLineFromProject(p.id, l)
-            }, t('common.delete') || '删除'),
+            iconBtn(isPlaying ? '⏸' : '▶', isPlaying ? '停止' : '播放', () => playLineFromProject(p.id, l), !l.audio_url, '#6366f1'),
+            iconBtn('⬇', '下载', () => { const a = document.createElement('a'); a.href = `/api/novel/projects/${p.id}/lines/${l.id}/audio`; a.download = `line_${l.id}.wav`; a.click() }, !l.audio_url, '#475569'),
+            iconBtn('↻', '重配', () => redubFromProject(p.id, l), false, '#f59e0b'),
+            iconBtn('✕', '删除', () => onDeleteLineFromProject(p.id, l), false, '#ef4444'),
           ]),
         ]),
-        // bottom row: character selector + gender + time + duration + tone
-        h('div', { style: 'display:flex;gap:10px;margin-top:4px;margin-left:52px;flex-wrap:wrap;align-items:center;font-size:11px;color:#94a3b8' }, [
+        h('div', { style: 'display:flex;gap:10px;margin-top:4px;margin-left:56px;flex-wrap:wrap;align-items:center;font-size:11px;color:#94a3b8' }, [
           h(NSelect, {
             value: l.character_id, size: 'tiny', style: 'width:100px', options: charOptions,
             onUpdateValue: (v: string) => { l.character_id = v; onEditLineFromProject(p.id, l) },
@@ -284,7 +286,7 @@ function renderExpandRow(p: any) {
           h('span', null, `(${cgender})`),
           h('span', null, `⏱ ${fmtTime(l.started_at)} → ${fmtTime(l.finished_at)}`),
           h('span', null, `耗时 ${fmtDur(l.elapsed_sec)}`),
-          h('span', { style: 'color:#a855f7;font-style:italic' }, l.instruct ? `"${l.instruct}"` : ''),
+          l.instruct ? h('span', { style: 'color:#a855f7;font-style:italic' }, `"${l.instruct}"`) : null,
         ]),
       ])
     }),
@@ -310,13 +312,7 @@ const tableColumns = computed(() => [
   {
     type: 'expand',
     expandable: (r: any) => (r.lines?.length || 0) > 0,
-    renderExpand: (r: any) => h('div', { style: 'padding:12px;background:#f8fafc;max-height:280px;overflow-y:auto' },
-      (r.lines || []).map((l: any) => h('div', { key: l.id, style: 'display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #e2e8f0;font-size:12px;align-items:flex-start' }, [
-        h(NTag, { size: 'tiny', type: statusType(l.status) }, { default: () => l.status }),
-        h('span', { style: 'flex:1;color:#334155' }, l.text),
-        h('span', { style: 'color:#94a3b8;flex-shrink:0' }, `${fmtDur(l.elapsed_sec)}`),
-      ]))
-    ),
+    renderExpand: (r: any) => renderExpandRow(r),
   },
   { title: '文件', key: 'filename', width: 160, ellipsis: { tooltip: true } },
   {
