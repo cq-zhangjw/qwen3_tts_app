@@ -236,16 +236,15 @@ function fmtDur(sec?: number) {
 
 function renderExpandRow(p: any) {
   const lines = p.lines || []
-  return h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:8px' }, [
-    h('div', { style: 'font-size:12px;color:#64748b;margin-bottom:6px' }, `共 ${lines.length} 句`),
-    ...lines.map((l: any, i: number) => {
+  return h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:8px;max-height:280px;overflow-y:auto' }, [
+    ...lines.map((l: any) => {
       const cname = charName(p, l.character_id)
       const cgender = charGender(p, l.character_id)
       return h('div', { key: l.id, style: 'display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #e2e8f0;align-items:flex-start;font-size:12px' }, [
         h(NTag, { size: 'tiny', type: statusType(l.status), style: 'flex-shrink:0;margin-top:2px' }, { default: () => l.status }),
         h(NTag, { size: 'tiny', type: typeTag(l.type), style: 'flex-shrink:0;margin-top:2px' }, { default: () => t(`novel.${l.type}`) }),
         h('div', { style: 'flex:1;min-width:0' }, [
-          h('div', { style: 'color:#334155' }, l.text),
+          h('div', { style: 'color:#334155;line-height:1.5' }, l.text),
           h('div', { style: 'display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;color:#64748b' }, [
             h('span', { style: 'color:#6366f1;font-weight:600' }, cname),
             h('span', { style: 'color:#94a3b8' }, `(${cgender})`),
@@ -255,8 +254,12 @@ function renderExpandRow(p: any) {
           ]),
         ]),
         h('div', { style: 'display:flex;flex-direction:column;gap:2px;flex-shrink:0' }, [
-          h(NButton, { size: 'tiny', quaternary: true, disabled: !l.audio_url, onClick: () => playLineFromProject(p.id, l) }, { default: () => t('common.play') }),
-          h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => onDeleteLineFromProject(p.id, l) }, { default: () => t('common.delete') }),
+          h(NButton, { size: 'tiny', quaternary: true, disabled: !l.audio_url, onClick: () => playLineFromProject(p.id, l) }, { default: () => t('common.play') || '播放' }),
+          h(NButton, { size: 'tiny', quaternary: true, disabled: !l.audio_url }, {
+            default: () => h('a', { href: `/api/novel/projects/${p.id}/lines/${l.id}/audio`, download: `line_${l.id}.wav`, style: 'text-decoration:none;color:inherit' }, t('common.download') || '下载'),
+          }),
+          h(NButton, { size: 'tiny', quaternary: true, onClick: () => redubFromProject(p.id, l) }, { default: () => t('novel.redub') || '重配' }),
+          h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => onDeleteLineFromProject(p.id, l) }, { default: () => t('common.delete') || '删除' }),
         ]),
       ])
     }),
@@ -280,11 +283,15 @@ function toggleExpand(pid: string) {
 
 const tableColumns = computed(() => [
   {
-    title: '', key: '_expand', width: 50,
-    render: (r: any) => h('button', {
-      style: 'background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;font-size:12px;padding:2px 8px;color:#4f46e5',
-      onClick: () => toggleExpand(r.id)
-    }, expandedPid.value === r.id ? '收起' : '详情'),
+    type: 'expand',
+    expandable: (r: any) => (r.lines?.length || 0) > 0,
+    renderExpand: (r: any) => h('div', { style: 'padding:12px;background:#f8fafc;max-height:280px;overflow-y:auto' },
+      (r.lines || []).map((l: any) => h('div', { key: l.id, style: 'display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #e2e8f0;font-size:12px;align-items:flex-start' }, [
+        h(NTag, { size: 'tiny', type: statusType(l.status) }, { default: () => l.status }),
+        h('span', { style: 'flex:1;color:#334155' }, l.text),
+        h('span', { style: 'color:#94a3b8;flex-shrink:0' }, `${fmtDur(l.elapsed_sec)}`),
+      ]))
+    ),
   },
   { title: '文件', key: 'filename', width: 160, ellipsis: { tooltip: true } },
   {
@@ -434,41 +441,9 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
       </n-card>
     </template>
 
-    <!-- Expanded project lines detail -->
-    <n-card v-if="expandedProject" bordered class="mt-16">
-      <template #header>
-        <span>{{ expandedProject.filename }} — {{ t('novel.linesDetail') || '句详情' }}</span>
-      </template>
-      <template #header-extra>
-        <n-button size="tiny" quaternary @click="expandedPid = null">✕</n-button>
-      </template>
-      <div v-for="line in expandedProject.lines" :key="line.id"
-        style="display:flex; gap:8px; padding:8px 0; border-bottom:1px solid #f1f5f9; align-items:flex-start; font-size:13px">
-        <n-tag size="tiny" :type="statusType(line.status)" style="flex-shrink:0;margin-top:2px">{{ line.status }}</n-tag>
-        <n-tag size="tiny" :type="typeTag(line.type)" style="flex-shrink:0;margin-top:2px">{{ t(`novel.${line.type}`) }}</n-tag>
-        <div style="flex:1;min-width:0">
-          <n-input v-model:value="line.text" type="textarea" :autosize="{minRows:1,maxRows:4}" size="small" @blur="onEditLineFromProject(expandedProject.id, line)" />
-          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;color:#64748b;font-size:12px">
-            <n-select v-model:value="line.character_id" size="tiny" style="width:110px"
-              :options="expandedProject.characters.map((c:any)=>({label:c.name, value:c.id}))"
-              @update:value="onEditLineFromProject(expandedProject.id, line)" />
-            <span style="color:#94a3b8">{{ charGender(expandedProject, line.character_id) }}</span>
-            <span style="color:#94a3b8">⏱ {{ fmtTime(line.started_at) }} → {{ fmtTime(line.finished_at) }}</span>
-            <span style="color:#94a3b8">耗时 {{ fmtDur(line.elapsed_sec) }}</span>
-            <n-input v-model:value="line.instruct" size="tiny" style="width:200px" :placeholder="t('studio.instructPlaceholder')" @blur="onEditLineFromProject(expandedProject.id, line)" />
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
-          <n-button size="tiny" quaternary :disabled="!line.audio_url" @click="playLineFromProject(expandedProject.id, line)">{{ t('common.play') }}</n-button>
-          <n-button size="tiny" quaternary @click="redubFromProject(expandedProject.id, line)">{{ t('novel.redub') }}</n-button>
-          <n-button size="tiny" quaternary type="error" @click="onDeleteLineFromProject(expandedProject.id, line)">{{ t('common.delete') }}</n-button>
-        </div>
-      </div>
-    </n-card>
-
     <!-- History table -->
     <n-card bordered :title="t('history.title')">
-      <n-data-table :columns="tableColumns" :data="projects" :row-key="(r:any)=>r.id" size="small" :pagination="{ pageSize: 8 }" />
+      <n-data-table :columns="tableColumns" :data="projects" :row-key="(r:any)=>r.id" size="small" :pagination="{ pageSize: 8 }" expand-trigger="row" />
     </n-card>
   </div>
 </template>
