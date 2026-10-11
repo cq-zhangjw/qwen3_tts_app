@@ -206,7 +206,11 @@ function playLineFromProject(pid: string, line: any) {
 const doneCount = computed(() => current.value?.lines?.filter((l: any) => l.status === 'done').length || 0)
 const totalCount = computed(() => current.value?.lines?.length || 0)
 const statusType = (s: string) =>
-  s === 'done' ? 'success' : s === 'failed' ? 'error' : (['dubbing','assembling','ready','running','characters','uploaded'].includes(s)) ? 'info' : 'default'
+  s === 'done' ? 'success' :
+  s === 'error' ? 'error' :
+  s === 'interrupt' ? 'warning' :
+  s === 'running' || s === 'dubbing' ? 'info' :
+  s === 'waiting' || s === 'ready' || s === 'characters' || s === 'uploaded' ? 'default' : 'default'
 const typeTag = (ty: string) => ty === 'dialogue' ? 'success' : ty === 'sfx' ? 'warning' : 'default'
 
 const stepItems = [
@@ -236,30 +240,51 @@ function fmtDur(sec?: number) {
 
 function renderExpandRow(p: any) {
   const lines = p.lines || []
-  return h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:8px;max-height:280px;overflow-y:auto' }, [
+  const charOptions = (p.characters || []).map((c: any) => ({ label: c.name, value: c.id }))
+  return h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:8px;max-height:300px;overflow-y:auto' }, [
     ...lines.map((l: any) => {
       const cname = charName(p, l.character_id)
       const cgender = charGender(p, l.character_id)
-      return h('div', { key: l.id, style: 'display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #e2e8f0;align-items:flex-start;font-size:12px' }, [
-        h(NTag, { size: 'tiny', type: statusType(l.status), style: 'flex-shrink:0;margin-top:2px' }, { default: () => l.status }),
-        h(NTag, { size: 'tiny', type: typeTag(l.type), style: 'flex-shrink:0;margin-top:2px' }, { default: () => t(`novel.${l.type}`) }),
-        h('div', { style: 'flex:1;min-width:0' }, [
-          h('div', { style: 'color:#334155;line-height:1.5' }, l.text),
-          h('div', { style: 'display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;color:#64748b' }, [
-            h('span', { style: 'color:#6366f1;font-weight:600' }, cname),
-            h('span', { style: 'color:#94a3b8' }, `(${cgender})`),
-            h('span', { style: 'color:#94a3b8' }, `⏱ ${fmtTime(l.started_at)} → ${fmtTime(l.finished_at)}`),
-            h('span', { style: 'color:#94a3b8' }, `耗时 ${fmtDur(l.elapsed_sec)}`),
-            l.instruct ? h('span', { style: 'color:#a855f7;font-style:italic' }, `"${l.instruct}"`) : null,
+      return h('div', { key: l.id, style: 'padding:8px 0;border-bottom:1px solid #e2e8f0' }, [
+        // top row: status tag + type tag + text + action buttons
+        h('div', { style: 'display:flex;gap:8px;align-items:flex-start;font-size:12px' }, [
+          h(NTag, { size: 'tiny', type: statusType(l.status), style: 'flex-shrink:0;margin-top:3px' }, { default: () => l.status }),
+          h(NTag, { size: 'tiny', type: typeTag(l.type), style: 'flex-shrink:0;margin-top:3px' }, { default: () => t(`novel.${l.type}`) }),
+          h('div', { style: 'flex:1;min-width:0' }, [
+            h('div', { style: 'color:#334155;line-height:1.5' }, l.text),
+          ]),
+          // action buttons - text style
+          h('div', { style: 'display:flex;gap:4px;flex-shrink:0' }, [
+            h('button', {
+              style: 'font-size:11px;padding:1px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;color:#6366f1;',
+              disabled: !l.audio_url,
+              onClick: () => playLineFromProject(p.id, l)
+            }, t('common.play') || '播放'),
+            h('a', {
+              href: l.audio_url ? `/api/novel/projects/${p.id}/lines/${l.id}/audio` : '#',
+              download: l.audio_url ? `line_${l.id}.wav` : null,
+              style: `font-size:11px;padding:1px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;color:#475569;text-decoration:none;${!l.audio_url ? 'opacity:0.4;pointer-events:none' : ''}`
+            }, t('common.download') || '下载'),
+            h('button', {
+              style: 'font-size:11px;padding:1px 8px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;color:#f59e0b;',
+              onClick: () => redubFromProject(p.id, l)
+            }, t('novel.redub') || '重配'),
+            h('button', {
+              style: 'font-size:11px;padding:1px 8px;border:1px solid #fecaca;border-radius:4px;background:#fef2f2;cursor:pointer;color:#ef4444;',
+              onClick: () => onDeleteLineFromProject(p.id, l)
+            }, t('common.delete') || '删除'),
           ]),
         ]),
-        h('div', { style: 'display:flex;flex-direction:column;gap:2px;flex-shrink:0' }, [
-          h(NButton, { size: 'tiny', quaternary: true, disabled: !l.audio_url, onClick: () => playLineFromProject(p.id, l) }, { default: () => t('common.play') || '播放' }),
-          h(NButton, { size: 'tiny', quaternary: true, disabled: !l.audio_url }, {
-            default: () => h('a', { href: `/api/novel/projects/${p.id}/lines/${l.id}/audio`, download: `line_${l.id}.wav`, style: 'text-decoration:none;color:inherit' }, t('common.download') || '下载'),
+        // bottom row: character selector + gender + time + duration + tone
+        h('div', { style: 'display:flex;gap:10px;margin-top:4px;margin-left:52px;flex-wrap:wrap;align-items:center;font-size:11px;color:#94a3b8' }, [
+          h(NSelect, {
+            value: l.character_id, size: 'tiny', style: 'width:100px', options: charOptions,
+            onUpdateValue: (v: string) => { l.character_id = v; onEditLineFromProject(p.id, l) },
           }),
-          h(NButton, { size: 'tiny', quaternary: true, onClick: () => redubFromProject(p.id, l) }, { default: () => t('novel.redub') || '重配' }),
-          h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => onDeleteLineFromProject(p.id, l) }, { default: () => t('common.delete') || '删除' }),
+          h('span', null, `(${cgender})`),
+          h('span', null, `⏱ ${fmtTime(l.started_at)} → ${fmtTime(l.finished_at)}`),
+          h('span', null, `耗时 ${fmtDur(l.elapsed_sec)}`),
+          h('span', { style: 'color:#a855f7;font-style:italic' }, l.instruct ? `"${l.instruct}"` : ''),
         ]),
       ])
     }),

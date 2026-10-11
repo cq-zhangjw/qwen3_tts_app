@@ -40,6 +40,16 @@ app.include_router(novel.router)
 @app.on_event("startup")
 def _startup():
     worker.start_worker()
+    # Migrate stale in-progress states from previous session to 'interrupt'
+    from core.database import db
+    for p in db.list_novel_projects():
+        if p.get("status") in ("dubbing", "assembling"):
+            db.update_novel_project(p["id"], {"status": "interrupt", "updated_at": db.now_iso()})
+        for line in p.get("lines", []):
+            if line.get("status") in ("running", "pending"):
+                line["status"] = "interrupt"
+        if any(l.get("status") == "interrupt" for l in p.get("lines", [])):
+            db.update_novel_project(p["id"], {"lines": p["lines"]})
     logger.info("%s v%s started on port %s", settings.APP_NAME, settings.VERSION, settings.APP_PORT)
     # Background: pre-generate cached previews for all preset voices (skips cached).
     import threading
