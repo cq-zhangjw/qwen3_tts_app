@@ -71,6 +71,8 @@ def preview_voice(voice_id: str):
     # For cloned voices, use the reference text they recorded
     if voice.get("type") == "clone" and voice.get("ref_text"):
         sample = voice["ref_text"]
+    elif voice.get("type") == "design" and voice.get("design_text"):
+        sample = voice["design_text"]
     else:
         sample = _PREVIEW_SAMPLES.get(lang, _PREVIEW_SAMPLES["zh"])
     result = engine.synthesize(voice=voice, text=sample, language=lang)

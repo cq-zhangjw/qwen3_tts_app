@@ -98,6 +98,8 @@ const PREVIEW_SAMPLES: Record<string, string> = {
   ja: 'こんにちは、はじめまして。よろしくお願いします。',
 }
 function previewText(v: any) {
+  if (v.type === 'design' && v.design_text) return v.design_text
+  if (v.type === 'clone' && v.ref_text) return v.ref_text
   const lang = v.language === 'ja' ? 'ja' : v.language === 'en' ? 'en' : 'zh'
   return PREVIEW_SAMPLES[lang] || PREVIEW_SAMPLES.zh
 }
