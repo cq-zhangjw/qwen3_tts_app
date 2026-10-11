@@ -31,8 +31,9 @@ function voiceOptions() {
     ...presetVoices.value.map((v: any) => ({ ...v, type: 'preset' })),
     ...customVoices.value.filter((v: any) => v.status === 'ready'),
   ]
+  const langTag = (l?: string) => l === 'ja' ? '🇯🇵' : l === 'en' ? '🇬🇧' : l === 'auto' ? '🌐' : '🇨🇳'
   return all.map((v: any) => ({
-    label: `${localLabel(v)}${v.type ? ` [${t(`voiceType.${v.type}`)}]` : ''}`,
+    label: `${langTag(v.language)} ${localLabel(v)}${v.type ? ` [${t(`voiceType.${v.type}`)}]` : ''}`,
     value: v.id,
   }))
 }

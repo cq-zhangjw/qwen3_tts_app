@@ -121,7 +121,8 @@ class TTSEngine:
             model = self.base_model()
             prompt = self._load_clone_prompt(voice["id"])
             wavs, sr = model.generate_voice_clone(
-                text=text, language=qwen_lang, voice_clone_prompt=prompt
+                text=text, language=qwen_lang, voice_clone_prompt=prompt,
+                non_streaming_mode=True,
             )
         else:
             raise ValueError(f"unknown voice type: {vtype}")
