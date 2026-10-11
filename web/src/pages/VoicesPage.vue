@@ -40,9 +40,14 @@ onMounted(() => {
 })
 
 const allVoices = computed(() => {
-  let rows = filter.value === 'all'
-    ? [...customVoices.value, ...presetVoices.value]
-    : customVoices.value
+  let rows: any[] = []
+  if (filter.value === 'all') {
+    rows = [...customVoices.value, ...presetVoices.value]
+  } else if (filter.value === 'preset') {
+    rows = presetVoices.value
+  } else {
+    rows = customVoices.value.filter((v: any) => v.type === filter.value)
+  }
   if (keyword.value) rows = rows.filter((v: any) => v.name.toLowerCase().includes(keyword.value.toLowerCase()))
   return rows
 })

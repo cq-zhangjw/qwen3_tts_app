@@ -68,11 +68,11 @@ def preview_voice(voice_id: str):
     lang = voice.get("language") or "zh"
     if voice.get("type") == "preset":
         lang = voice.get("language", "zh")
-    # For cloned voices, use the reference text they recorded
+    # For cloned voices, use the reference text they recorded (truncated for preview)
     if voice.get("type") == "clone" and voice.get("ref_text"):
-        sample = voice["ref_text"]
+        sample = voice["ref_text"][:80]
     elif voice.get("type") == "design" and voice.get("design_text"):
-        sample = voice["design_text"]
+        sample = voice["design_text"][:80]
     else:
         sample = _PREVIEW_SAMPLES.get(lang, _PREVIEW_SAMPLES["zh"])
     wav, sr = engine._synth_chunk(voice, sample, lang, None)
