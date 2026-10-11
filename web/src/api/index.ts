@@ -13,6 +13,7 @@ export const listVoices = (params?: { type?: string; keyword?: string }) =>
   api.get('/voices', { params }).then(r => r.data)
 export const getVoice = (id: string) => api.get(`/voices/${id}`).then(r => r.data)
 export const deleteVoice = (id: string) => api.delete(`/voices/${id}`).then(r => r.data)
+export const renameVoice = (id: string, name: string) => api.patch(`/voices/${id}`, { name }).then(r => r.data)
 export const previewVoice = (id: string) => api.post(`/voices/${id}/preview`).then(r => r.data)
 export const retryVoice = (id: string) => api.post(`/voices/${id}/retry`).then(r => r.data)
 export const createClone = (form: FormData) =>

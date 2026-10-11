@@ -102,6 +102,16 @@ def delete_voice(voice_id: str):
     return ok(True)
 
 
+@router.patch("/{voice_id}")
+def rename_voice(voice_id: str, body: dict):
+    """Rename a voice."""
+    voice = db.get_voice(voice_id)
+    if not voice:
+        raise HTTPException(status_code=404, detail="voice not found")
+    db.update_voice(voice_id, {"name": body.get("name", voice.get("name"))})
+    return ok({"id": voice_id, "name": body.get("name")})
+
+
 @router.post("/{voice_id}/retry")
 def retry_voice(voice_id: str):
     """Retry a failed clone/design voice."""

@@ -2,7 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { listVoices, deleteVoice, getSystemInfo, previewVoice, retryVoice } from '../api'
+import { listVoices, deleteVoice, getSystemInfo, previewVoice, retryVoice, renameVoice } from '../api'
 
 const message = useMessage()
 const { t, locale } = useI18n()
@@ -93,6 +93,18 @@ async function onRetry(v: any) {
   }
 }
 
+async function onRename(v: any) {
+  const name = window.prompt('输入新名称', v.name)
+  if (!name || !name.trim() || name === v.name) return
+  try {
+    await renameVoice(v.id, name.trim())
+    message.success('已重命名')
+    await load()
+  } catch (e: any) {
+    message.error(e?.response?.data?.detail || 'Error')
+  }
+}
+
 function typeTagType(type: string) {
   return type === 'preset' ? 'info' : type === 'clone' ? 'success' : 'warning'
 }
@@ -161,6 +173,9 @@ function previewText(v: any) {
               <div class="flex gap-8 mt-16">
                 <n-button size="tiny" :loading="previewingId === v.id" :disabled="v.status === 'processing' || v.status === 'failed'" @click="onPreview(v)">
                   {{ playingId === v.id ? '…' : t('common.preview') }}
+                </n-button>
+                <n-button v-if="v.type !== 'preset'" size="tiny" quaternary @click="onRename(v)">
+                  重命名
                 </n-button>
                 <n-button v-if="v.status === 'failed'" size="tiny" type="warning" ghost @click="onRetry(v)">
                   重试

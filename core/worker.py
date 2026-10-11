@@ -125,6 +125,22 @@ def _run_tts(task_id: str) -> None:
     })
 
 
+def _generate_preview(voice_id: str) -> None:
+    """Generate and cache a preview wav for a ready voice."""
+    from api.voices import _resolve_voice_record, _PREVIEW_SAMPLES
+    voice = _resolve_voice_record(voice_id)
+    lang = voice.get("language", "zh")
+    if voice.get("type") == "clone" and voice.get("ref_text"):
+        sample = voice["ref_text"][:80]
+    elif voice.get("type") == "design" and voice.get("design_text"):
+        sample = voice["design_text"][:80]
+    else:
+        sample = _PREVIEW_SAMPLES.get(lang, _PREVIEW_SAMPLES["zh"])
+    wav, sr = engine._synth_chunk(voice, sample, lang, None)
+    cache_key = voice_id.replace(":", "_")
+    engine.save_wav(wav, sr, f"previews/{cache_key}.wav")
+
+
 def _run_clone(job: dict) -> None:
     voice_id = job["voice_id"]
     ref_audio = job["ref_audio"]
@@ -149,6 +165,11 @@ def _run_clone(job: dict) -> None:
     created["created_at"] = now_iso()
     created["status"] = "ready"
     db.update_voice(voice_id, {k: v for k, v in created.items() if k != "id"})
+    # Auto-generate preview audio
+    try:
+        _generate_preview(voice_id)
+    except Exception as e:
+        logger.warning("auto preview failed for %s: %s", voice_id, e)
 
 
 def _run_design(job: dict) -> None:
@@ -170,6 +191,17 @@ def _run_design(job: dict) -> None:
     created["audio_url"] = created["audio_url_zh"]
     created["status"] = "ready"
     db.update_voice(voice_id, {k: v for k, v in created.items() if k != "id"})
+    # Design already has preview wavs; just cache one for the preview endpoint
+    try:
+        import shutil
+        cache_key = voice_id.replace(":", "_")
+        preview_src = settings.AUDIO_DIR / f"{voice_id}_zh.wav"
+        preview_dst = settings.AUDIO_DIR / "previews" / f"{cache_key}.wav"
+        preview_dst.parent.mkdir(parents=True, exist_ok=True)
+        if preview_src.exists():
+            shutil.copy(preview_src, preview_dst)
+    except Exception as e:
+        logger.warning("design preview copy failed for %s: %s", voice_id, e)
 
 
 def _run_novel_line(job: dict) -> None:
