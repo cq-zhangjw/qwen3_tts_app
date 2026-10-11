@@ -51,11 +51,15 @@ async function loadProjects() {
 const projects = ref<any[]>([])
 
 async function openProject(id: string) {
-  current.value = (await getNovel(id)).data
-  // jump to the latest meaningful step
-  if (!current.value.characters?.length) step.value = 1
-  else if (!current.value.lines?.length) step.value = 2
-  else step.value = 3
+  try {
+    const res = await getNovel(id)
+    current.value = res.data
+    if (!current.value.characters?.length) step.value = 1
+    else if (!current.value.lines?.length) step.value = 2
+    else step.value = 3
+  } catch (e: any) {
+    message.error('打开失败: ' + (e?.response?.data?.detail || e?.message || e))
+  }
 }
 
 async function customUpload({ file, onFinish, onError }: any) {
@@ -141,14 +145,14 @@ const stepItems = [
 ]
 
 const tableColumns = computed(() => [
-  { type: 'expand', expandable: (r: any) => r.lines?.length > 0, renderExpand: (r: any) => h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:6px' },
-    (r.lines || []).map((l: any) => h('div', { style: 'display:flex;gap:8px;padding:3px 0;font-size:12px;align-items:center' }, [
-      h(NTag, { size: 'tiny', type: statusType(l.status) }, () => l.status),
+  { type: 'expand', expandable: (r: any) => (r.lines?.length || 0) > 0, renderExpand: (r: any) => h('div', { style: 'padding:12px 20px;background:#f8fafc;border-radius:6px' },
+    (r.lines || []).map((l: any, i: number) => h('div', { key: i, style: 'display:flex;gap:8px;padding:3px 0;font-size:12px;align-items:center' }, [
+      h(NTag, { size: 'tiny', type: statusType(l.status) }, { default: () => l.status }),
       h('span', { style: 'flex:1;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, l.text),
     ])))
   },
   { title: '文件', key: 'filename' },
-  { title: '状态', key: 'status', render: (r: any) => h(NTag, { size: 'small', type: statusType(r.status) }, () => r.status) },
+  { title: '状态', key: 'status', render: (r: any) => h(NTag, { size: 'small', type: statusType(r.status) }, { default: () => r.status }) },
   { title: '进度', key: 'progress', render: (r: any) => h('div', { style: 'display:flex;align-items:center;gap:6px' }, [
     `${r.done_count || 0}/${r.total_count || 0}`,
     h(NProgress, { size: 'small', percentage: r.total_count ? Math.round((r.done_count || 0) / r.total_count * 100) : 0, showIndicator: false, style: 'width:80px' })
