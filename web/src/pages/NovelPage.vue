@@ -141,6 +141,12 @@ const stepItems = [
 ]
 
 const tableColumns = computed(() => [
+  { type: 'expand', expandable: (r: any) => r.lines?.length > 0, renderExpand: (r: any) => h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:6px' },
+    (r.lines || []).map((l: any) => h('div', { style: 'display:flex;gap:8px;padding:3px 0;font-size:12px;align-items:center' }, [
+      h(NTag, { size: 'tiny', type: statusType(l.status) }, () => l.status),
+      h('span', { style: 'flex:1;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, l.text),
+    ])))
+  },
   { title: '文件', key: 'filename' },
   { title: '状态', key: 'status', render: (r: any) => h(NTag, { size: 'small', type: statusType(r.status) }, () => r.status) },
   { title: '进度', key: 'progress', render: (r: any) => h('div', { style: 'display:flex;align-items:center;gap:6px' }, [
@@ -148,11 +154,13 @@ const tableColumns = computed(() => [
     h(NProgress, { size: 'small', percentage: r.total_count ? Math.round((r.done_count || 0) / r.total_count * 100) : 0, showIndicator: false, style: 'width:80px' })
   ]) },
   { title: '创建', key: 'created_at', render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, (r.created_at || '').replace('T', ' ').slice(0, 16)) },
-  { title: '操作', key: 'actions', render: (r: any) => h('div', { style: 'display:flex;gap:6px' }, [
-    h('a', { style: 'color:#6366f1;cursor:pointer;font-size:12px', onClick: (e: Event) => { e.preventDefault(); openProject(r.id) } }, '打开'),
-    h('a', { style: 'color:#64748b;cursor:pointer;font-size:12px', onClick: (e: Event) => { e.preventDefault(); onProjectDub(r) } }, '开始配音'),
-    h('a', { style: 'color:#64748b;cursor:pointer;font-size:12px', onClick: (e: Event) => { e.preventDefault(); onProjectAssemble(r) } }, '合成音频'),
-    h('a', { style: r.final_audio_url ? 'color:#22c55e;cursor:pointer;font-size:12px' : 'color:#cbd5e1;font-size:12px', href: r.final_audio_url ? `/api/novel/projects/${r.id}/final` : '#' }, '下载完整音频'),
+  { title: '操作', key: 'actions', render: (r: any) => h('div', { style: 'display:flex;gap:4px' }, [
+    h('button', { style: 'font-size:12px;padding:2px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#6366f1;cursor:pointer', onClick: () => openProject(r.id) }, '打开'),
+    h('button', { style: 'font-size:12px;padding:2px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#475569;cursor:pointer', onClick: () => onProjectDub(r) }, '配音'),
+    h('button', { style: 'font-size:12px;padding:2px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#475569;cursor:pointer', onClick: () => onProjectAssemble(r) }, '合成'),
+    r.final_audio_url
+      ? h('a', { style: 'font-size:12px;padding:2px 10px;border:1px solid #bbf7d0;border-radius:6px;background:#f0fdf4;color:#16a34a;cursor:pointer;text-decoration:none', href: `/api/novel/projects/${r.id}/final` }, '下载')
+      : h('span', { style: 'font-size:12px;padding:2px 10px;color:#cbd5e1' }, '下载'),
   ]) },
 ])
 
