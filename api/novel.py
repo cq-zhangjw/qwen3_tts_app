@@ -36,8 +36,7 @@ async def create_project(file: UploadFile = File(...)):
     if not raw:
         raise HTTPException(status_code=400, detail="empty file")
     pid = f"np_{uuid.uuid4().hex[:10]}"
-    characters = novel_svc.analyze_characters(raw)
-    lines = novel_svc.split_lines(raw, characters)
+    characters, lines = novel_svc.analyze_and_split_llm(raw)
     project = {
         "id": pid,
         "filename": file.filename or "novel.txt",
@@ -69,6 +68,29 @@ class CharactersBody(BaseModel):
     characters: list[dict]
 
 
+class AddCharacterBody(BaseModel):
+    name: str
+    voice_id: str | None = None
+    instruct: str | None = None
+
+
+@router.post("/projects/{pid}/characters")
+def add_character(pid: str, body: AddCharacterBody):
+    p = _load(pid)
+    import uuid as _uuid
+    colors = ["#64748b", "#6366f1", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6"]
+    new_c = {
+        "id": f"c_{_uuid.uuid4().hex[:8]}",
+        "name": body.name,
+        "color": colors[len(p["characters"]) % len(colors)],
+        "voice_id": body.voice_id or "preset:novel_m_uncle",
+        "instruct": body.instruct,
+    }
+    p["characters"].append(new_c)
+    db.update_novel_project(pid, {"characters": p["characters"], "updated_at": now_iso()})
+    return ok(new_c)
+
+
 @router.patch("/projects/{pid}/characters")
 def update_characters(pid: str, body: CharactersBody):
     p = _load(pid)
@@ -81,8 +103,7 @@ def update_characters(pid: str, body: CharactersBody):
 @router.post("/projects/{pid}/split")
 def resplit(pid: str):
     p = _load(pid)
-    p["characters"] = novel_svc.analyze_characters(p["raw_text"])
-    p["lines"] = novel_svc.split_lines(p["raw_text"], p["characters"])
+    p["characters"], p["lines"] = novel_svc.analyze_and_split_llm(p["raw_text"])
     p["final_audio_url"] = None
     _recount(p)
     db.update_novel_project(pid, {"characters": p["characters"], "lines": p["lines"],

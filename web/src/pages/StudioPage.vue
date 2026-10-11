@@ -24,16 +24,10 @@ const playingId = ref<string | null>(null)
 let timer: number | null = null
 
 const allOptions = computed(() => [
-  {
-    label: t('voices.filterPreset'),
-    options: presetVoices.value.map(v => ({ label: localLabel(v), value: v.id }))
-  },
-  {
-    label: t('voices.filterClone') + ' / ' + t('voices.filterDesign'),
-    options: customVoices.value
-      .filter(v => v.status === 'ready')
-      .map(v => ({ label: `${v.name} [${t(`voiceType.${v.type}`)}]`, value: v.id }))
-  }
+  ...presetVoices.value.map((v: any) => ({ label: localLabel(v), value: v.id })),
+  ...customVoices.value
+    .filter((v: any) => v.status === 'ready')
+    .map((v: any) => ({ label: `${v.name} [${t(`voiceType.${v.type}`)}]`, value: v.id }))
 ])
 
 onMounted(async () => {

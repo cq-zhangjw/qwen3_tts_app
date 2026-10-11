@@ -9,3 +9,5 @@ moofile
 python-dotenv
 python-multipart
 pydub
+langchain
+langchain-openai
