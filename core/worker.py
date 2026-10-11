@@ -135,7 +135,7 @@ def _run_clone(job: dict) -> None:
         subprocess.run(["ffmpeg", "-y", "-i", ref_audio, "-ar", "24000", "-ac", "1", wav_path],
                        capture_output=True, check=True)
         ref_audio = wav_path
-    created = engine.clone_extract(job["name"], ref_audio, job["ref_text"])
+    created = engine.clone_extract(job["name"], ref_audio, job["ref_text"], job.get("language", "zh"))
     # created has a fresh voice_id; but we reserved voice_id at request time.
     # Replace the reserved placeholder with the real one (same id scheme).
     created["id"] = voice_id

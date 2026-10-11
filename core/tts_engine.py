@@ -171,7 +171,7 @@ class TTSEngine:
         return f"/audio/{filename}"
 
     # ---- voice clone ----
-    def clone_extract(self, name: str, ref_audio_path: str, ref_text: str) -> dict:
+    def clone_extract(self, name: str, ref_audio_path: str, ref_text: str, language: str = "zh") -> dict:
         """Extract a clone prompt and persist it. Returns the voice record (without id)."""
         with self._infer_lock:
             model = self.base_model()
@@ -186,7 +186,7 @@ class TTSEngine:
             "id": voice_id,
             "name": name,
             "type": "clone",
-            "language": "auto",
+            "language": language,
             "ref_audio": os.path.relpath(ref_audio_path, settings.BASE_DIR) if os.path.isabs(ref_audio_path) else ref_audio_path,
             "ref_text": ref_text,
             "clone_prompt_path": str(prompt_path),

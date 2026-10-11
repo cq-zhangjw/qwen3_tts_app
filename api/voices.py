@@ -75,8 +75,8 @@ def preview_voice(voice_id: str):
         sample = voice["design_text"]
     else:
         sample = _PREVIEW_SAMPLES.get(lang, _PREVIEW_SAMPLES["zh"])
-    result = engine.synthesize(voice=voice, text=sample, language=lang)
-    engine.save_wav(result["wav"], result["sr"], f"previews/{cache_key}.wav")
+    wav, sr = engine._synth_chunk(voice, sample, lang, None)
+    engine.save_wav(wav, sr, f"previews/{cache_key}.wav")
     return ok({"audio_url": f"/audio/previews/{cache_key}.wav", "cached": False})
 
 
@@ -118,6 +118,7 @@ def retry_voice(voice_id: str):
             "ref_audio": voice.get("ref_audio"),
             "ref_text": voice.get("ref_text", ""),
             "name": voice.get("name", ""),
+            "language": voice.get("language", "zh"),
         })
     elif voice.get("type") == "design":
         worker.enqueue({
@@ -164,6 +165,7 @@ async def create_clone(
         "ref_audio": str(save_path),
         "ref_text": ref_text,
         "name": name,
+        "language": language,
     })
     return ok({"id": voice_id, "name": name, "status": "processing"})
 
