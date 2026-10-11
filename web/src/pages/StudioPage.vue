@@ -26,12 +26,18 @@ let timer: number | null = null
 function langTag(l?: string) {
   return l === 'ja' ? '🇯🇵' : l === 'en' ? '🇬🇧' : '🇨🇳'
 }
-const allOptions = computed(() => [
-  ...presetVoices.value.map((v: any) => ({ label: `${langTag(v.language)} ${localLabel(v)}`, value: v.id })),
-  ...customVoices.value
-    .filter((v: any) => v.status === 'ready')
-    .map((v: any) => ({ label: `${langTag(v.language)} ${v.name} [${t(`voiceType.${v.type}`)}]`, value: v.id }))
-])
+function voiceOptions(lang: string) {
+  const all = [
+    ...presetVoices.value,
+    ...customVoices.value.filter((v: any) => v.status === 'ready'),
+  ]
+  return all
+    .filter((v: any) => (v.language || 'zh') === lang)
+    .map((v: any) => ({ label: `${localLabel(v)} [${t(`voiceType.${v.type}`)}]`, value: v.id }))
+}
+const zhOptions = computed(() => voiceOptions('zh'))
+const jaOptions = computed(() => voiceOptions('ja'))
+const enOptions = computed(() => voiceOptions('en'))
 
 onMounted(async () => {
   try {
@@ -132,15 +138,15 @@ function statusType(s: string) {
             :placeholder="t('studio.textPlaceholder')" show-count />
           <div class="mt-16">
             <div style="font-size:12px; color:#64748b; margin-bottom:6px">中文音色（必选）</div>
-            <n-select v-model:value="voiceZh" :options="allOptions" filterable />
+            <n-select v-model:value="voiceZh" :options="zhOptions" filterable />
           </div>
           <div class="mt-16">
             <div style="font-size:12px; color:#64748b; margin-bottom:6px">日本語音色（必选）</div>
-            <n-select v-model:value="voiceJa" :options="allOptions" filterable />
+            <n-select v-model:value="voiceJa" :options="jaOptions" filterable />
           </div>
           <div class="mt-16">
             <div style="font-size:12px; color:#64748b; margin-bottom:6px">English Voice (required)</div>
-            <n-select v-model:value="voiceEn" :options="allOptions" filterable />
+            <n-select v-model:value="voiceEn" :options="enOptions" filterable />
           </div>
           <n-button type="primary" class="mt-16" :loading="submitting" block @click="onSubmit">
             {{ t('studio.synthesize') }}
@@ -154,7 +160,7 @@ function statusType(s: string) {
           <template #header-extra>
             <n-button size="tiny" quaternary @click="loadTasks">{{ t('common.refresh') }}</n-button>
           </template>
-          <div v-if="tasks.length" style="display:flex; flex-direction:column; gap:10px">
+          <div v-if="tasks.length" style="display:flex; flex-direction:column; gap:10px; max-height:800px; overflow-y:auto">
             <div v-for="task of tasks" :key="task.id">
               <n-card size="small" :bordered="true" style="height:100%">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">

@@ -201,7 +201,8 @@ def redub_line(pid: str, lid: str):
     if not line:
         raise HTTPException(status_code=404, detail="line not found")
     line["status"] = "pending"
-    db.update_novel_project(pid, {"lines": p["lines"]})
+    p["status"] = "dubbing"
+    db.update_novel_project(pid, {"lines": p["lines"], "status": "dubbing"})
     worker.enqueue({"kind": "novel_line", "project_id": pid, "line_id": lid})
     return ok({"status": "queued"})
 

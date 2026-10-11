@@ -139,7 +139,7 @@ def _run_clone(job: dict) -> None:
         os.replace(old_prompt, new_prompt)
     created["clone_prompt_path"] = new_prompt
     created["created_at"] = now_iso()
-    # The placeholder row already exists; overwrite fields via update.
+    created["status"] = "ready"
     db.update_voice(voice_id, {k: v for k, v in created.items() if k != "id"})
 
 
@@ -160,6 +160,7 @@ def _run_design(job: dict) -> None:
             os.replace(old_path, new_path)
         created[f"audio_url_{lang}"] = f"/audio/{new_name}"
     created["audio_url"] = created["audio_url_zh"]
+    created["status"] = "ready"
     db.update_voice(voice_id, {k: v for k, v in created.items() if k != "id"})
 
 

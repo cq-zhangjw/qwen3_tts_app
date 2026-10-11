@@ -32,7 +32,12 @@ async function load() {
   } finally { loading.value = false }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  setInterval(() => {
+    if (customVoices.value.some((v: any) => v.status === 'processing')) load()
+  }, 3000)
+})
 
 const allVoices = computed(() => {
   let rows = filter.value === 'all'
@@ -43,6 +48,7 @@ const allVoices = computed(() => {
 })
 
 async function onPreview(v: any) {
+  if (v.status === 'processing') { message.warning('音色生成中，请稍候'); return }
   if (playingId.value === v.id) return
   previewingId.value = v.id
   try {
@@ -123,6 +129,8 @@ function previewText(v: any) {
                     <n-space :size="4">
                       <n-tag size="tiny" bordered>{{ v.language === 'ja' ? '日本語' : v.language === 'en' ? 'EN' : v.language === 'auto' ? 'Auto' : '中文' }}</n-tag>
                       <n-tag size="tiny" :type="typeTagType(v.type)">{{ t(`voiceType.${v.type}`) }}</n-tag>
+                      <n-tag v-if="v.status === 'processing'" size="tiny" type="warning" bordered>生成中</n-tag>
+                      <n-tag v-if="v.status === 'failed'" size="tiny" type="error" bordered>失败</n-tag>
                     </n-space>
                   </div>
                   <div style="color:#64748b; font-size:12px; margin-top:4px">
@@ -134,7 +142,7 @@ function previewText(v: any) {
                 </div>
               </div>
               <div class="flex gap-8 mt-16">
-                <n-button size="tiny" :loading="previewingId === v.id" @click="onPreview(v)">
+                <n-button size="tiny" :loading="previewingId === v.id" :disabled="v.status === 'processing'" @click="onPreview(v)">
                   {{ playingId === v.id ? '…' : t('common.preview') }}
                 </n-button>
                 <n-popconfirm v-if="v.type !== 'preset'" @positive-click="onDelete(v)">

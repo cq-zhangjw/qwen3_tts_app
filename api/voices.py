@@ -68,7 +68,11 @@ def preview_voice(voice_id: str):
     lang = voice.get("language") or "zh"
     if voice.get("type") == "preset":
         lang = voice.get("language", "zh")
-    sample = _PREVIEW_SAMPLES.get(lang, _PREVIEW_SAMPLES["zh"])
+    # For cloned voices, use the reference text they recorded
+    if voice.get("type") == "clone" and voice.get("ref_text"):
+        sample = voice["ref_text"]
+    else:
+        sample = _PREVIEW_SAMPLES.get(lang, _PREVIEW_SAMPLES["zh"])
     result = engine.synthesize(voice=voice, text=sample, language=lang)
     engine.save_wav(result["wav"], result["sr"], f"previews/{cache_key}.wav")
     return ok({"audio_url": f"/audio/previews/{cache_key}.wav", "cached": False})

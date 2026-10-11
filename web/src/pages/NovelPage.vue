@@ -269,8 +269,13 @@ function renderExpandRow(p: any) {
       return h('div', { key: l.id, style: 'padding:8px 0;border-bottom:1px solid #e2e8f0' }, [
         h('div', { style: 'display:flex;gap:8px;align-items:flex-start;font-size:12px' }, [
           h(NTag, { size: 'tiny', type: statusType(l.status), style: 'flex-shrink:0;margin-top:3px' }, { default: () => l.status }),
-          h(NTag, { size: 'tiny', type: typeTag(l.type), style: 'flex-shrink:0;margin-top:3px' }, { default: () => t(`novel.${l.type}`) }),
-          h('div', { style: 'flex:1;min-width:0;color:#334155;line-height:1.5' }, l.text),
+          h('div', { style: 'flex:1;min-width:0' }, [
+            h(NInput, {
+              value: l.text, type: 'textarea', autosize: { minRows: 1, maxRows: 4 }, size: 'small',
+              onBlur: () => onEditLineFromProject(p.id, l),
+              'onUpdate:value': (v: string) => { l.text = v },
+            }),
+          ]),
           h('div', { style: 'display:flex;gap:4px;flex-shrink:0' }, [
             iconBtn(isPlaying ? '⏸' : '▶', isPlaying ? '停止' : '播放', () => playLineFromProject(p.id, l), !l.audio_url, '#6366f1'),
             iconBtn('⬇', '下载', () => { const a = document.createElement('a'); a.href = `/api/novel/projects/${p.id}/lines/${l.id}/audio`; a.download = `line_${l.id}.wav`; a.click() }, !l.audio_url, '#475569'),
@@ -286,7 +291,11 @@ function renderExpandRow(p: any) {
           h('span', null, `(${cgender})`),
           h('span', null, `⏱ ${fmtTime(l.started_at)} → ${fmtTime(l.finished_at)}`),
           h('span', null, `耗时 ${fmtDur(l.elapsed_sec)}`),
-          l.instruct ? h('span', { style: 'color:#a855f7;font-style:italic' }, `"${l.instruct}"`) : null,
+          h(NInput, {
+            value: l.instruct, size: 'tiny', style: 'width:200px', placeholder: '提示词，如"用激昂的语气说"',
+            onBlur: () => onEditLineFromProject(p.id, l),
+            'onUpdate:value': (v: string) => { l.instruct = v },
+          }),
         ]),
       ])
     }),
@@ -330,20 +339,30 @@ const tableColumns = computed(() => [
   { title: '终了时间', key: 'ended_at', width: 130, render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, fmtTime(r.ended_at)) },
   { title: '耗时', key: 'elapsed_sec', width: 80, render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, fmtDur(r.elapsed_sec)) },
   {
-    title: '操作', key: 'actions', width: 260,
-    render: (r: any) => h('div', { style: 'display:flex;gap:4px;flex-wrap:wrap' }, [
-      h(NButton, { size: 'tiny', type: 'primary', onClick: () => openProject(r.id) }, { default: () => t('common.open') || '打开' }),
-      h(NButton, { size: 'tiny', onClick: () => onProjectDub(r) }, { default: () => t('novel.dubAll') || '配音' }),
-      h(NButton, { size: 'tiny', onClick: () => onAssemble(r.id) }, { default: () => t('novel.assemble') || '合成' }),
-      h(NButton, { size: 'tiny', disabled: !r.final_audio_url, onClick: () => onProjectPlay(r) }, { default: () => playingProjectId.value === r.id ? '…' : (t('common.play') || '播放') }),
-      h(NDropdown, {
-        options: downloadOptions(r.id), trigger: 'click',
-        onSelect: (key: string) => onDownloadSelect(key, r.id),
-      }, {
-        default: () => h(NButton, { size: 'tiny', type: r.final_audio_url ? 'success' : 'default', disabled: !r.final_audio_url }, { default: () => t('novel.download') || '下载' }),
-      }),
-      h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => onDeleteProject(r) }, { default: () => '✕' }),
-    ]),
+    title: '操作', key: 'actions', width: 220,
+    render: (r: any) => {
+      const obtn = (icon: string, tip: string, onClick: () => void, disabled = false, color = '#6366f1') =>
+        h(NTooltip, { trigger: 'hover' }, {
+          trigger: () => h('button', {
+            style: `font-size:13px;width:26px;height:26px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;cursor:${disabled ? 'not-allowed' : 'pointer'};color:${disabled ? '#cbd5e1' : color};display:inline-flex;align-items:center;justify-content:center;`,
+            disabled, onClick,
+          }, icon),
+          default: () => tip,
+        })
+      return h('div', { style: 'display:flex;gap:4px;flex-wrap:wrap' }, [
+        obtn('📂', '打开', () => openProject(r.id), false, '#6366f1'),
+        obtn('🎙', '开始配音', () => onProjectDub(r), false, '#6366f1'),
+        obtn('🎵', '合成音频', () => onAssemble(r.id), false, '#8b5cf6'),
+        obtn(playingProjectId.value === r.id ? '⏸' : '▶', playingProjectId.value === r.id ? '停止' : '播放', () => onProjectPlay(r), !r.final_audio_url, '#22c55e'),
+        h(NDropdown, {
+          options: downloadOptions(r.id), trigger: 'click',
+          onSelect: (key: string) => onDownloadSelect(key, r.id),
+        }, {
+          trigger: () => obtn('⬇', '下载（合并/分轨）', () => {}, !r.final_audio_url, '#475569'),
+        }),
+        obtn('✕', '删除项目', () => onDeleteProject(r), false, '#ef4444'),
+      ])
+    },
   },
 ])
 
