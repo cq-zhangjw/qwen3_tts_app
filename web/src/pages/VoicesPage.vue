@@ -125,8 +125,8 @@ function previewText(v: any) {
     <!-- Only this area scrolls -->
     <div style="flex:1; overflow-y:auto; padding-bottom:20px">
       <n-spin :show="loading">
-        <n-grid :cols="24" :responsive="['screen']" :x-gap="16" :y-gap="16">
-          <n-gi v-for="v in allVoices" :key="v.id" :span="24" :span-tablet="12" :span-laptop="12" :span-mobile="24">
+        <n-grid :cols="2" :x-gap="16" :y-gap="16" responsive="screen">
+          <n-gi v-for="v in allVoices" :key="v.id">
             <n-card class="voice-card" size="small" bordered>
               <div style="display:flex; gap:12px; align-items:flex-start">
                 <n-avatar :size="46" round
