@@ -140,6 +140,12 @@
     "noProject": "No projects yet. Upload to start.",
     "dubbing": "Dubbing",
     "done": "Dubbing done",
-    "finalReady": "Full audio is ready to download"
+    "finalReady": "Full audio is ready to download",
+    "stepUpload": "Upload Novel",
+    "stepCharacters": "Characters",
+    "stepLines": "Review Lines",
+    "stepDub": "Dub & Assemble",
+    "next": "Next",
+    "prev": "Back"
   }
 }

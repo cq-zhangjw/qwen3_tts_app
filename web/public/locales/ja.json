@@ -140,6 +140,12 @@
     "noProject": "プロジェクトがありません。アップロードして開始",
     "dubbing": "吹き込み中",
     "done": "吹き込み完了",
-    "finalReady": "完全版音声をダウンロードできます"
+    "finalReady": "完全版音声をダウンロードできます",
+    "stepUpload": "小説をアップロード",
+    "stepCharacters": "キャラクター",
+    "stepLines": "文の確認",
+    "stepDub": "吹き込み・結合",
+    "next": "次へ",
+    "prev": "戻る"
   }
 }

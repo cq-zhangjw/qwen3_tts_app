@@ -140,6 +140,12 @@
     "noProject": "暂无小说项目，上传开始",
     "dubbing": "配音中",
     "done": "配音完成",
-    "finalReady": "完整音频已生成，可下载"
+    "finalReady": "完整音频已生成，可下载",
+    "stepUpload": "上传小说",
+    "stepCharacters": "角色音色",
+    "stepLines": "拆句确认",
+    "stepDub": "配音合成",
+    "next": "下一步",
+    "prev": "上一步"
   }
 }
