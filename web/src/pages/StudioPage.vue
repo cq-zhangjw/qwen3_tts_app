@@ -26,18 +26,17 @@ let timer: number | null = null
 function langTag(l?: string) {
   return l === 'ja' ? '🇯🇵' : l === 'en' ? '🇬🇧' : '🇨🇳'
 }
-function voiceOptions(lang: string) {
+function voiceOptions() {
   const all = [
-    ...presetVoices.value,
+    ...presetVoices.value.map((v: any) => ({ ...v, type: 'preset' })),
     ...customVoices.value.filter((v: any) => v.status === 'ready'),
   ]
-  return all
-    .filter((v: any) => (v.language || 'zh') === lang)
-    .map((v: any) => ({ label: `${localLabel(v)} [${t(`voiceType.${v.type}`)}]`, value: v.id }))
+  return all.map((v: any) => ({
+    label: `${localLabel(v)}${v.type ? ` [${t(`voiceType.${v.type}`)}]` : ''}`,
+    value: v.id,
+  }))
 }
-const zhOptions = computed(() => voiceOptions('zh'))
-const jaOptions = computed(() => voiceOptions('ja'))
-const enOptions = computed(() => voiceOptions('en'))
+const voiceOpts = computed(() => voiceOptions())
 
 onMounted(async () => {
   try {
@@ -138,15 +137,15 @@ function statusType(s: string) {
             :placeholder="t('studio.textPlaceholder')" show-count />
           <div class="mt-16">
             <div style="font-size:12px; color:#64748b; margin-bottom:6px">中文音色（必选）</div>
-            <n-select v-model:value="voiceZh" :options="zhOptions" filterable />
+            <n-select v-model:value="voiceZh" :options="voiceOpts" filterable />
           </div>
           <div class="mt-16">
             <div style="font-size:12px; color:#64748b; margin-bottom:6px">日本語音色（必选）</div>
-            <n-select v-model:value="voiceJa" :options="jaOptions" filterable />
+            <n-select v-model:value="voiceJa" :options="voiceOpts" filterable />
           </div>
           <div class="mt-16">
             <div style="font-size:12px; color:#64748b; margin-bottom:6px">English Voice (required)</div>
-            <n-select v-model:value="voiceEn" :options="enOptions" filterable />
+            <n-select v-model:value="voiceEn" :options="voiceOpts" filterable />
           </div>
           <n-button type="primary" class="mt-16" :loading="submitting" block @click="onSubmit">
             {{ t('studio.synthesize') }}
