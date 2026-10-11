@@ -127,7 +127,15 @@ def _run_tts(task_id: str) -> None:
 
 def _run_clone(job: dict) -> None:
     voice_id = job["voice_id"]
-    created = engine.clone_extract(job["name"], job["ref_audio"], job["ref_text"])
+    ref_audio = job["ref_audio"]
+    # Convert WebM/other formats to WAV if needed
+    if not ref_audio.lower().endswith(".wav"):
+        import subprocess
+        wav_path = ref_audio.rsplit(".", 1)[0] + ".wav"
+        subprocess.run(["ffmpeg", "-y", "-i", ref_audio, "-ar", "24000", "-ac", "1", wav_path],
+                       capture_output=True, check=True)
+        ref_audio = wav_path
+    created = engine.clone_extract(job["name"], ref_audio, job["ref_text"])
     # created has a fresh voice_id; but we reserved voice_id at request time.
     # Replace the reserved placeholder with the real one (same id scheme).
     created["id"] = voice_id
