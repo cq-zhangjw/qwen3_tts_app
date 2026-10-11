@@ -2,7 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { listVoices, deleteVoice, getSystemInfo, previewVoice } from '../api'
+import { listVoices, deleteVoice, getSystemInfo, previewVoice, retryVoice } from '../api'
 
 const message = useMessage()
 const { t, locale } = useI18n()
@@ -78,6 +78,16 @@ async function onDelete(v: any) {
   }
 }
 
+async function onRetry(v: any) {
+  try {
+    await retryVoice(v.id)
+    message.success('已重新加入队列')
+    await load()
+  } catch (e: any) {
+    message.error(e?.response?.data?.detail || 'Error')
+  }
+}
+
 function typeTagType(type: string) {
   return type === 'preset' ? 'info' : type === 'clone' ? 'success' : 'warning'
 }
@@ -116,7 +126,7 @@ function previewText(v: any) {
     <div style="flex:1; overflow-y:auto; padding-bottom:20px">
       <n-spin :show="loading">
         <n-grid :cols="24" :responsive="['screen']" :x-gap="16" :y-gap="16">
-          <n-gi v-for="v in allVoices" :key="v.id" :span="24" :span-tablet="12" :span-laptop="8" :span-mobile="24">
+          <n-gi v-for="v in allVoices" :key="v.id" :span="24" :span-tablet="12" :span-laptop="12" :span-mobile="24">
             <n-card class="voice-card" size="small" bordered>
               <div style="display:flex; gap:12px; align-items:flex-start">
                 <n-avatar :size="46" round
@@ -142,8 +152,11 @@ function previewText(v: any) {
                 </div>
               </div>
               <div class="flex gap-8 mt-16">
-                <n-button size="tiny" :loading="previewingId === v.id" :disabled="v.status === 'processing'" @click="onPreview(v)">
+                <n-button size="tiny" :loading="previewingId === v.id" :disabled="v.status === 'processing' || v.status === 'failed'" @click="onPreview(v)">
                   {{ playingId === v.id ? '…' : t('common.preview') }}
+                </n-button>
+                <n-button v-if="v.status === 'failed'" size="tiny" type="warning" ghost @click="onRetry(v)">
+                  重试
                 </n-button>
                 <n-popconfirm v-if="v.type !== 'preset'" @positive-click="onDelete(v)">
                   <template #trigger>

@@ -100,6 +100,34 @@ def delete_voice(voice_id: str):
     return ok(True)
 
 
+@router.post("/{voice_id}/retry")
+def retry_voice(voice_id: str):
+    """Retry a failed clone/design voice."""
+    from core import worker
+    voice = db.get_voice(voice_id)
+    if not voice:
+        raise HTTPException(status_code=404, detail="voice not found")
+    if voice.get("status") != "failed":
+        raise HTTPException(status_code=400, detail="only failed voices can be retried")
+    db.update_voice(voice_id, {"status": "processing", "error": None})
+    if voice.get("type") == "clone":
+        worker.enqueue({
+            "kind": "clone", "voice_id": voice_id,
+            "ref_audio": voice.get("ref_audio"),
+            "ref_text": voice.get("ref_text", ""),
+            "name": voice.get("name", ""),
+        })
+    elif voice.get("type") == "design":
+        worker.enqueue({
+            "kind": "design", "voice_id": voice_id,
+            "name": voice.get("name", ""),
+            "instruct": voice.get("instruct", ""),
+            "text": voice.get("design_text", ""),
+            "language": voice.get("language", "zh"),
+        })
+    return ok({"status": "processing"})
+
+
 # ---- voice clone ----
 @router.post("/clone")
 async def create_clone(

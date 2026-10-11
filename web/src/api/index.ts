@@ -14,6 +14,7 @@ export const listVoices = (params?: { type?: string; keyword?: string }) =>
 export const getVoice = (id: string) => api.get(`/voices/${id}`).then(r => r.data)
 export const deleteVoice = (id: string) => api.delete(`/voices/${id}`).then(r => r.data)
 export const previewVoice = (id: string) => api.post(`/voices/${id}/preview`).then(r => r.data)
+export const retryVoice = (id: string) => api.post(`/voices/${id}/retry`).then(r => r.data)
 export const createClone = (form: FormData) =>
   api.post('/voices/clone', form).then(r => r.data)
 export const createDesign = (body: { name: string; instruct: string; text: string; language: string }) =>
