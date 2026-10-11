@@ -128,10 +128,13 @@ class TTSEngine:
         return np.asarray(wavs[0]).squeeze(), sr
 
     # ---- high-level: split -> synth -> merge ----
-    def synthesize(self, voice: dict, text: str, language: str,
+    def synthesize(self, voice_map: dict, text: str, language: str = "auto",
                    instruct: str | None = None, progress_cb=None) -> dict:
         """Full synthesis pipeline. Returns {wav, sr, segments, elapsed_sec}.
 
+        voice_map: {"zh": voice_record, "ja": voice_record, "en": voice_record}.
+        Each segment is synthesized with the voice mapped to its detected language
+        (falls back to the zh voice when a slot is missing).
         progress_cb(step_index, total, segment_info) optional callback.
         """
         with self._infer_lock:
@@ -139,11 +142,14 @@ class TTSEngine:
             if not plan:
                 raise ValueError("empty text after splitting")
 
+            default_voice = voice_map.get("zh") or next(iter(voice_map.values()))
             pieces: list[np.ndarray] = []
             sr = None
             t0 = time.time()
             for i, seg in enumerate(plan):
-                wav, sr = self._synth_chunk(voice, seg["text"], seg["lang"], instruct)
+                voice = voice_map.get(seg["lang"], default_voice)
+                seg_kwargs = voice.get("instruct") if not instruct else instruct
+                wav, sr = self._synth_chunk(voice, seg["text"], seg["lang"], seg_kwargs)
                 pieces.append(wav)
                 seg["status"] = "done"
                 if progress_cb:

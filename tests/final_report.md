@@ -55,3 +55,12 @@ POST /api/voices/design  body={name, instruct, text, language:"zh"}
 - 预热占用 GPU 约 1 分钟；期间若发起合成会排队等待（设计如此，避免显存竞争）。
 - 10 个小说音色复用少数 base speaker（Serena/Vivian/Uncle_Fu/Dylan），通过 `instruct` 区分性格，音色基底相同但语气有别。
 - 旧版残留的 `preset_Vivian.wav` 等文件不影响功能，可忽略。
+
+## 第三轮迭代（语言切换修复 + 分语言音色映射）
+
+| 反馈 | 实现 | 验证 |
+|------|------|------|
+| 界面语言切换失效 | App.vue setup 只解构了 `t` 未解构 `locale`，导致 `onLangChange` 静默失败；补 `locale` 解构 | 顶栏语言下拉可切换 zh/en/ja |
+| 去掉自动混合下拉，改必选中/日/英音色 | POST /api/tts 改为 `voice_map:{zh,ja,en}`（三者必选）；前端合成台三个独立必选选择器，后台按段语言分配音色 | `zh:沉稳大叔 / ja:温柔姐姐 / en:明亮少女` 三段分别用对应音色合成，21.67s 完成；缺 ja/en 返回 400 `missing voices: ja,en` |
+
+实测分段：`你好…中文测试。`→zh 大叔；`こんにちは…`→ja 温柔姐姐；`Hello…`→en 明亮少女。

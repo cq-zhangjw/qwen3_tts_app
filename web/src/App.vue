@@ -11,7 +11,7 @@ import { getSystemInfo } from './api'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const collapsed = ref(false)
 const modelLoaded = ref<Record<string, boolean>>({})

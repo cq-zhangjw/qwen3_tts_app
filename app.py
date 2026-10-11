@@ -52,7 +52,7 @@ def _startup():
             try:
                 voice = {"type": "preset", "speaker": v["speaker"],
                          "language": "zh", "instruct": v.get("instruct")}
-                result = engine.synthesize(voice=voice, text="你好，很高兴认识你，欢迎来到我的世界。", language="zh")
+                result = engine.synthesize({"zh": voice}, text="你好，很高兴认识你，欢迎来到我的世界。", language="zh")
                 engine.save_wav(result["wav"], result["sr"], f"previews/preset_{v['id']}.wav")
             except Exception as exc:  # noqa: BLE001
                 logger.warning("warmup preview failed %s: %s", v["id"], exc)

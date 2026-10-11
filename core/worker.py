@@ -64,8 +64,7 @@ def _dispatch(job: dict) -> None:
         logger.warning("unknown job kind: %s", kind)
 
 
-def _resolve_voice(task: dict) -> dict:
-    voice_id = task["voice_id"]
+def _resolve_voice_by_id(voice_id: str) -> dict:
     if voice_id.startswith("preset:"):
         vid = voice_id.split("preset:", 1)[1]
         preset = next((v for v in PRESET_VOICES if v["id"] == vid), None)
@@ -92,17 +91,19 @@ def _run_tts(task_id: str) -> None:
         return
 
     db.update_task(task_id, {"status": "running", "started_at": now_iso(), "progress": 1})
-    voice = _resolve_voice(task)
+
+    # voice_map: {"zh": voice_id, "ja": voice_id, "en": voice_id}
+    vmap_ids = task.get("voice_map") or {}
+    voice_map = {lang: _resolve_voice_by_id(vid) for lang, vid in vmap_ids.items() if vid}
 
     def progress_cb(done: int, total: int, seg: dict):
         pct = int(done / total * 95)  # leave 5% for saving
         db.update_task(task_id, {"progress": pct, "status": "running"})
 
     result = engine.synthesize(
-        voice=voice,
+        voice_map=voice_map,
         text=task["text"],
-        language=task.get("language", "auto"),
-        instruct=task.get("instruct"),
+        language="auto",
         progress_cb=progress_cb,
     )
     filename = f"{task_id}.wav"

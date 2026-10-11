@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from api.responses import ok
 from core.config import settings
 from core.database import db, now_iso
+from core.tts_engine import PRESET_VOICES
 from core import worker
 
 router = APIRouter(prefix="/api/tts", tags=["tts"])
@@ -18,9 +19,18 @@ router = APIRouter(prefix="/api/tts", tags=["tts"])
 
 class TTSBody(BaseModel):
     text: str
-    voice_id: str
-    language: str = "auto"
-    instruct: str | None = None
+    voice_map: dict[str, str]   # {"zh": voice_id, "ja": voice_id, "en": voice_id}
+
+
+def _voice_display(voice_id: str) -> tuple[str, str]:
+    if voice_id.startswith("preset:"):
+        vid = voice_id.split("preset:", 1)[1]
+        preset = next((v for v in PRESET_VOICES if v["id"] == vid), None)
+        return (preset["label_zh"] if preset else vid), "preset"
+    v = db.get_voice(voice_id)
+    if not v:
+        raise HTTPException(status_code=404, detail=f"voice not found: {voice_id}")
+    return v.get("name", voice_id), v.get("type")
 
 
 @router.post("")
@@ -28,28 +38,23 @@ def create_task(body: TTSBody):
     text = (body.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
-    if not body.voice_id:
-        raise HTTPException(status_code=400, detail="voice_id is required")
+    vmap = body.voice_map or {}
+    missing = [lang for lang in ("zh", "ja", "en") if not vmap.get(lang)]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"missing voices: {','.join(missing)}")
 
-    # resolve voice name/type for display
-    if body.voice_id.startswith("preset:"):
-        speaker = body.voice_id.split("preset:", 1)[1]
-        voice_name, voice_type = speaker, "preset"
-    else:
-        v = db.get_voice(body.voice_id)
-        if not v:
-            raise HTTPException(status_code=404, detail="voice not found")
-        voice_name, voice_type = v.get("name", body.voice_id), v.get("type")
+    labels = []
+    for lang in ("zh", "ja", "en"):
+        name, _ = _voice_display(vmap[lang])
+        labels.append(f"{lang}:{name}")
 
     task_id = f"t_{uuid.uuid4().hex[:10]}"
     task = {
         "id": task_id,
         "text": text,
-        "voice_id": body.voice_id,
-        "voice_name": voice_name,
-        "voice_type": voice_type,
-        "language": body.language,
-        "instruct": body.instruct,
+        "voice_map": vmap,
+        "voice_name": " / ".join(labels),
+        "language": "auto",
         "status": "pending",
         "progress": 0,
         "error": None,

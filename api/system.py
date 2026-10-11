@@ -66,7 +66,7 @@ def prewarm():
                 voice = {"type": "preset", "speaker": v["speaker"],
                          "language": "zh", "instruct": v.get("instruct")}
                 sample = "你好，很高兴认识你，欢迎来到我的世界。"
-                result = engine.synthesize(voice=voice, text=sample, language="zh")
+                result = engine.synthesize({"zh": voice}, text=sample, language="zh")
                 engine.save_wav(result["wav"], result["sr"], f"previews/preset_{v['id']}.wav")
                 logger.info("warmup preview done: %s", v["id"])
             except Exception as exc:  # noqa: BLE001

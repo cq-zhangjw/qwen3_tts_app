@@ -12,9 +12,9 @@ function localLabel(v: any) {
 }
 
 const text = ref('')
-const voiceId = ref('')
-const language = ref('auto')
-const instruct = ref('')
+const voiceZh = ref('')
+const voiceJa = ref('')
+const voiceEn = ref('')
 const submitting = ref(false)
 
 const presetVoices = ref<any[]>([])
@@ -23,7 +23,7 @@ const tasks = ref<any[]>([])
 const playingId = ref<string | null>(null)
 let timer: number | null = null
 
-const voiceOptions = computed(() => [
+const allOptions = computed(() => [
   {
     label: t('voices.filterPreset'),
     options: presetVoices.value.map(v => ({ label: localLabel(v), value: v.id }))
@@ -36,20 +36,17 @@ const voiceOptions = computed(() => [
   }
 ])
 
-const langOptions = computed(() => [
-  { label: t('lang.zh'), value: 'zh' },
-  { label: t('lang.en'), value: 'en' },
-  { label: t('lang.ja'), value: 'ja' },
-  { label: t('lang.auto'), value: 'auto' }
-])
-
 onMounted(async () => {
   try {
     const sys = await getSystemInfo()
     presetVoices.value = sys.data.preset_voices || []
   } catch (e) { /* ignore */ }
   await loadCustom()
-  if (presetVoices.value.length) voiceId.value = presetVoices.value[0].id
+  if (presetVoices.value.length) {
+    voiceZh.value = presetVoices.value[0].id
+    voiceJa.value = presetVoices.value[0].id
+    voiceEn.value = presetVoices.value[0].id
+  }
   await loadTasks()
   timer = window.setInterval(pollRunning, 1500)
 })
@@ -88,17 +85,16 @@ async function pollRunning() {
 
 async function onSubmit() {
   if (!text.value.trim()) { message.warning(t('studio.needText')); return }
-  if (!voiceId.value) { message.warning(t('studio.needVoice')); return }
+  if (!voiceZh.value || !voiceJa.value || !voiceEn.value) {
+    message.warning('请为中/日/英分别选择音色'); return
+  }
   submitting.value = true
   try {
     const res = await createTask({
       text: text.value,
-      voice_id: voiceId.value,
-      language: language.value,
-      instruct: instruct.value || null
+      voice_map: { zh: voiceZh.value, ja: voiceJa.value, en: voiceEn.value }
     })
     message.success(t('studio.submitted'))
-    // immediately prepend the task so the user sees it
     const fresh = await getTask(res.data.id)
     tasks.value.unshift(fresh.data)
     text.value = ''
@@ -137,15 +133,18 @@ function statusType(s: string) {
         <n-card bordered :title="t('studio.title')">
           <n-input v-model:value="text" type="textarea" :rows="8"
             :placeholder="t('studio.textPlaceholder')" show-count />
-          <div class="mt-16" style="display:flex; gap:12px; flex-wrap:wrap">
-            <n-select v-model:value="voiceId" :options="voiceOptions" style="flex:1; min-width:200px" />
-            <n-select v-model:value="language" :options="langOptions" style="width:130px" />
+          <div class="mt-16">
+            <div style="font-size:12px; color:#64748b; margin-bottom:6px">中文音色（必选）</div>
+            <n-select v-model:value="voiceZh" :options="allOptions" filterable />
           </div>
-          <n-collapse class="mt-16">
-            <n-collapse-item :title="t('studio.advanced')" name="adv">
-              <n-input v-model:value="instruct" :placeholder="t('studio.instructPlaceholder')" />
-            </n-collapse-item>
-          </n-collapse>
+          <div class="mt-16">
+            <div style="font-size:12px; color:#64748b; margin-bottom:6px">日本語音色（必选）</div>
+            <n-select v-model:value="voiceJa" :options="allOptions" filterable />
+          </div>
+          <div class="mt-16">
+            <div style="font-size:12px; color:#64748b; margin-bottom:6px">English Voice (required)</div>
+            <n-select v-model:value="voiceEn" :options="allOptions" filterable />
+          </div>
           <n-button type="primary" class="mt-16" :loading="submitting" block @click="onSubmit">
             {{ t('studio.synthesize') }}
           </n-button>
