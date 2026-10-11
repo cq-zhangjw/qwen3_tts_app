@@ -187,13 +187,40 @@ def _run_novel_line(job: dict) -> None:
         line["status"] = "failed"
         line["error"] = str(exc)
         logger.warning("novel line %s failed: %s", line["id"], exc)
-    db.update_novel_project(pid, {"lines": p["lines"], "updated_at": now_iso()})
+    db.update_novel_project(pid, {
+        "lines": p["lines"],
+        "done_count": sum(1 for l in p["lines"] if l["status"] == "done"),
+        "total_count": len(p["lines"]),
+        "updated_at": now_iso(),
+    })
     # chain next pending line
     nxt = next((l for l in p["lines"] if l["status"] in ("pending", "failed")), None)
     if nxt:
         enqueue({"kind": "novel_line", "project_id": pid})
     else:
-        db.update_novel_project(pid, {"status": "ready", "updated_at": now_iso()})
+        done = now_iso()
+        done_count = sum(1 for l in p["lines"] if l["status"] == "done")
+        total_count = len(p["lines"])
+        t0 = None
+        for l in p["lines"]:
+            if l.get("started_at"):
+                t0 = l["started_at"]
+                break
+        elapsed = None
+        if t0:
+            from datetime import datetime
+            try:
+                t0_dt = datetime.fromisoformat(t0)
+                done_dt = datetime.fromisoformat(done)
+                elapsed = round((done_dt - t0_dt).total_seconds(), 1)
+            except Exception:
+                pass
+        # auto-assemble after all lines done
+        db.update_novel_project(pid, {
+            "status": "assembling", "done_count": done_count, "total_count": total_count,
+            "updated_at": now_iso(), "ended_at": done, "elapsed_sec": elapsed,
+        })
+        enqueue({"kind": "novel_assemble", "project_id": pid})
 
 
 def _run_novel_assemble(job: dict) -> None:
@@ -204,7 +231,8 @@ def _run_novel_assemble(job: dict) -> None:
         return
     try:
         url = novel_svc.assemble(p)
-        db.update_novel_project(pid, {"status": "done", "final_audio_url": url, "updated_at": now_iso()})
+        db.update_novel_project(pid, {"status": "done", "final_audio_url": url,
+                                       "updated_at": now_iso(), "ended_at": now_iso()})
     except Exception as exc:  # noqa: BLE001
         db.update_novel_project(pid, {"status": "failed", "updated_at": now_iso()})
         logger.warning("assemble failed: %s", exc)

@@ -239,6 +239,25 @@ def final_audio(pid: str):
     return FileResponse(str(path), media_type="audio/wav", filename=f"{p['filename']}.wav")
 
 
+@router.get("/projects/{pid}/zip")
+def lines_zip(pid: str):
+    """Download all done line wavs as a ZIP."""
+    import zipfile, tempfile
+    p = _load(pid)
+    base = settings.AUDIO_DIR / "novel" / pid
+    tmp = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+    tmp.close()
+    with zipfile.ZipFile(tmp.name, "w", zipfile.ZIP_DEFLATED) as zf:
+        for l in p["lines"]:
+            if l.get("audio_url"):
+                fname = os.path.basename(l["audio_url"])
+                path = base / fname
+                if path.exists():
+                    zf.write(str(path), fname)
+    return FileResponse(tmp.name, media_type="application/zip",
+                        filename=f"{p['filename']}_lines.zip")
+
+
 @router.delete("/projects/{pid}")
 def delete_project(pid: str):
     import shutil

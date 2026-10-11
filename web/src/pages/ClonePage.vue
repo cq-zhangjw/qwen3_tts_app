@@ -110,8 +110,8 @@ onUnmounted(() => { mediaRecorder?.stop() })
 
         <n-form-item :label="t('clone.audioSource')">
           <n-space>
-            <n-button type="error" :ghost="!recording" :loading="recording" @click="toggleRecord">
-              {{ recording ? t('clone.stopRec') : t('clone.startRec') }}
+            <n-button type="error" :ghost="!recording" @click="toggleRecord">
+              {{ recording ? '⏹ ' + t('clone.stopRec') : '🎙 ' + t('clone.startRec') }}
             </n-button>
             <n-upload :file-list="fileList" :max="1" accept=".wav,.mp3,.m4a,.webm" @change="handleUpload">
               <n-button>{{ t('clone.uploadLabel') }}</n-button>

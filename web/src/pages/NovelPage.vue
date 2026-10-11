@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, h, onMounted, onUnmounted, ref } from 'vue'
-import { NProgress, NTag, NButton, useMessage } from 'naive-ui'
+import { NTag, NButton, NProgress, NSelect, NInput, useMessage, NDropdown } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import {
   uploadNovel, listNovels, getNovel, dubNovel, redubNovelLine, editNovelLine,
   deleteNovelLine, assembleNovel, deleteNovel, getSystemInfo, listVoices,
-  addNovelCharacter, analyzeNovel, splitNovel
+  addNovelCharacter, analyzeNovel, splitNovel, updateNovelCharacters
 } from '../api'
 
 const message = useMessage()
@@ -19,10 +19,11 @@ const splitting = ref(false)
 const dubbing = ref(false)
 const assembling = ref(false)
 const playingId = ref<string | null>(null)
+const playingProjectId = ref<string | null>(null)
 const presetVoices = ref<any[]>([])
 const customVoices = ref<any[]>([])
 const newCharName = ref('')
-const expandedRow = ref<string | null>(null)
+const projects = ref<any[]>([])
 let timer: number | null = null
 
 function localLabel(v: any) {
@@ -48,7 +49,15 @@ async function loadVoices() {
 async function loadProjects() {
   projects.value = (await listNovels()).data || []
 }
-const projects = ref<any[]>([])
+
+function charName(p: any, cid: string) {
+  const c = (p?.characters || []).find((x: any) => x.id === cid)
+  return c?.name || '旁白'
+}
+function charGender(p: any, cid: string) {
+  const c = (p?.characters || []).find((x: any) => x.id === cid)
+  return c?.gender || '—'
+}
 
 async function openProject(id: string) {
   try {
@@ -60,6 +69,11 @@ async function openProject(id: string) {
   } catch (e: any) {
     message.error('打开失败: ' + (e?.response?.data?.detail || e?.message || e))
   }
+}
+
+function closeWizard() {
+  current.value = null
+  step.value = 0
 }
 
 async function customUpload({ file, onFinish, onError }: any) {
@@ -98,39 +112,94 @@ async function onAddCharacter() {
     current.value.characters.push(res.data); newCharName.value = ''
   } catch (e: any) { message.error(e?.response?.data?.detail || 'Error') }
 }
+
+async function saveCharacters() {
+  if (!current.value) return
+  try {
+    const res = await updateNovelCharacters(current.value.id, current.value.characters)
+    current.value.characters = res.data
+  } catch (e: any) { message.error(e?.response?.data?.detail || '保存角色失败') }
+}
+
 async function onDub() {
   if (!current.value) return
+  await saveCharacters()
   dubbing.value = true
-  try { await dubNovel(current.value.id) } finally { setTimeout(() => dubbing.value = false, 1500) }
+  try {
+    await dubNovel(current.value.id)
+    message.success(t('novel.dubStarted') || '配音已开始')
+    closeWizard()
+    await loadProjects()
+  } finally { setTimeout(() => dubbing.value = false, 1500) }
 }
-async function onAssemble() {
-  if (!current.value) return
+async function onAssemble(pid?: string) {
+  const id = pid || current.value?.id
+  if (!id) return
   assembling.value = true
-  try { await assembleNovel(current.value.id) } finally { setTimeout(() => assembling.value = false, 1500) }
+  try { await assembleNovel(id); message.success(t('novel.assembling') || '合成中') }
+  finally { setTimeout(() => assembling.value = false, 1500) }
 }
-async function onRedub(line: any) { await redubNovelLine(current.value.id, line.id) }
+async function onProjectDub(p: any) {
+  await dubNovel(p.id)
+  if (current.value?.id === p.id) await openProject(p.id)
+  else await loadProjects()
+}
+async function onProjectPlay(p: any) {
+  if (!p.final_audio_url) { message.warning(t('novel.noFinal') || '尚未合成完整音频'); return }
+  playingProjectId.value = p.id
+  const audio = new Audio(`/api/novel/projects/${p.id}/final`)
+  audio.onended = () => playingProjectId.value = null
+  audio.play()
+}
+
+async function onRedub(line: any) {
+  await redubNovelLine(current.value!.id, line.id)
+  message.success(t('novel.redubQueued') || '重配已加入队列')
+}
 async function onEditLine(line: any) {
-  await editNovelLine(current.value.id, line.id, {
-    text: line.text, character_id: line.character_id, type: line.type, instruct: line.instruct
-  })
+  try {
+    await editNovelLine(current.value!.id, line.id, {
+      text: line.text, character_id: line.character_id, type: line.type, instruct: line.instruct
+    })
+  } catch (e: any) { message.error(e?.response?.data?.detail || 'Error') }
+}
+async function onEditLineFromProject(pid: string, line: any) {
+  try {
+    await editNovelLine(pid, line.id, {
+      text: line.text, character_id: line.character_id, type: line.type, instruct: line.instruct
+    })
+    // refresh project
+    const res = await getNovel(pid)
+    const idx = projects.value.findIndex((x: any) => x.id === pid)
+    if (idx >= 0) projects.value[idx] = res.data
+  } catch (e: any) { message.error(e?.response?.data?.detail || 'Error') }
 }
 async function onDeleteLine(line: any) {
-  await deleteNovelLine(current.value.id, line.id)
+  await deleteNovelLine(current.value!.id, line.id)
   current.value.lines = current.value.lines.filter((l: any) => l.id !== line.id)
+}
+async function onDeleteLineFromProject(pid: string, line: any) {
+  await deleteNovelLine(pid, line.id)
+  const res = await getNovel(pid)
+  const idx = projects.value.findIndex((x: any) => x.id === pid)
+  if (idx >= 0) projects.value[idx] = res.data
 }
 async function onDeleteProject(p: any) {
   await deleteNovel(p.id)
-  if (current.value?.id === p.id) { current.value = null; step.value = 0 }
+  if (current.value?.id === p.id) closeWizard()
   await loadProjects()
 }
-async function onProjectDub(p: any) { await dubNovel(p.id); if (current.value?.id === p.id) await openProject(p.id) }
-async function onProjectAssemble(p: any) { await assembleNovel(p.id) }
 
 function playLine(line: any) {
   if (!line.audio_url || playingId.value === line.id) return
   playingId.value = line.id
   const audio = new Audio(line.audio_url)
   audio.onended = () => playingId.value = null
+  audio.play()
+}
+function playLineFromProject(pid: string, line: any) {
+  if (!line.audio_url) return
+  const audio = new Audio(line.audio_url)
   audio.play()
 }
 
@@ -144,37 +213,123 @@ const stepItems = [
   t('novel.stepUpload'), t('novel.stepCharacters'), t('novel.stepLines'), t('novel.stepDub')
 ]
 
+const downloadOptions = (pid: string) => [
+  { label: t('novel.downloadMerged') || '合并下载 (final.wav)', key: 'merged', props: { style: 'font-size:12px' } },
+  { label: t('novel.downloadSplit') || '分轨下载 (ZIP)', key: 'split', props: { style: 'font-size:12px' } },
+]
+function onDownloadSelect(key: string, pid: string) {
+  if (key === 'merged') window.open(`/api/novel/projects/${pid}/final`, '_blank')
+  else window.open(`/api/novel/projects/${pid}/zip`, '_blank')
+}
+
+function fmtTime(iso?: string) {
+  if (!iso) return '—'
+  return iso.replace('T', ' ').slice(0, 16)
+}
+function fmtDur(sec?: number) {
+  if (!sec && sec !== 0) return '—'
+  if (sec < 60) return `${sec}s`
+  const m = Math.floor(sec / 60)
+  const s = Math.round(sec % 60)
+  return `${m}m${s}s`
+}
+
+function renderExpandRow(p: any) {
+  const lines = p.lines || []
+  return h('div', { style: 'padding:8px 16px;background:#f8fafc;border-radius:8px' }, [
+    h('div', { style: 'font-size:12px;color:#64748b;margin-bottom:6px' }, `共 ${lines.length} 句`),
+    ...lines.map((l: any, i: number) => {
+      const cname = charName(p, l.character_id)
+      const cgender = charGender(p, l.character_id)
+      return h('div', { key: l.id, style: 'display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #e2e8f0;align-items:flex-start;font-size:12px' }, [
+        h(NTag, { size: 'tiny', type: statusType(l.status), style: 'flex-shrink:0;margin-top:2px' }, { default: () => l.status }),
+        h(NTag, { size: 'tiny', type: typeTag(l.type), style: 'flex-shrink:0;margin-top:2px' }, { default: () => t(`novel.${l.type}`) }),
+        h('div', { style: 'flex:1;min-width:0' }, [
+          h('div', { style: 'color:#334155' }, l.text),
+          h('div', { style: 'display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;color:#64748b' }, [
+            h('span', { style: 'color:#6366f1;font-weight:600' }, cname),
+            h('span', { style: 'color:#94a3b8' }, `(${cgender})`),
+            h('span', { style: 'color:#94a3b8' }, `⏱ ${fmtTime(l.started_at)} → ${fmtTime(l.finished_at)}`),
+            h('span', { style: 'color:#94a3b8' }, `耗时 ${fmtDur(l.elapsed_sec)}`),
+            l.instruct ? h('span', { style: 'color:#a855f7;font-style:italic' }, `"${l.instruct}"`) : null,
+          ]),
+        ]),
+        h('div', { style: 'display:flex;flex-direction:column;gap:2px;flex-shrink:0' }, [
+          h(NButton, { size: 'tiny', quaternary: true, disabled: !l.audio_url, onClick: () => playLineFromProject(p.id, l) }, { default: () => t('common.play') }),
+          h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => onDeleteLineFromProject(p.id, l) }, { default: () => t('common.delete') }),
+        ]),
+      ])
+    }),
+  ])
+}
+
+const expandedPid = ref<string | null>(null)
+const expandedProject = computed(() => projects.value.find((p: any) => p.id === expandedPid.value) || null)
+
+async function redubFromProject(pid: string, line: any) {
+  await redubNovelLine(pid, line.id)
+  message.success(t('novel.redubQueued') || '重配已加入队列')
+  const res = await getNovel(pid)
+  const idx = projects.value.findIndex((x: any) => x.id === pid)
+  if (idx >= 0) projects.value[idx] = res.data
+}
+
+function toggleExpand(pid: string) {
+  expandedPid.value = expandedPid.value === pid ? null : pid
+}
+
 const tableColumns = computed(() => [
-  { type: 'expand', expandable: (r: any) => (r.lines?.length || 0) > 0, renderExpand: (r: any) => h('div', { style: 'padding:12px 20px;background:#f8fafc;border-radius:6px' },
-    (r.lines || []).map((l: any, i: number) => h('div', { key: i, style: 'display:flex;gap:8px;padding:3px 0;font-size:12px;align-items:center' }, [
-      h(NTag, { size: 'tiny', type: statusType(l.status) }, { default: () => l.status }),
-      h('span', { style: 'flex:1;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, l.text),
-    ])))
+  {
+    title: '', key: '_expand', width: 50,
+    render: (r: any) => h('button', {
+      style: 'background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;cursor:pointer;font-size:12px;padding:2px 8px;color:#4f46e5',
+      onClick: () => toggleExpand(r.id)
+    }, expandedPid.value === r.id ? '收起' : '详情'),
   },
-  { title: '文件', key: 'filename' },
-  { title: '状态', key: 'status', render: (r: any) => h(NTag, { size: 'small', type: statusType(r.status) }, { default: () => r.status }) },
-  { title: '进度', key: 'progress', render: (r: any) => h('div', { style: 'display:flex;align-items:center;gap:6px' }, [
-    `${r.done_count || 0}/${r.total_count || 0}`,
-    h(NProgress, { size: 'small', percentage: r.total_count ? Math.round((r.done_count || 0) / r.total_count * 100) : 0, showIndicator: false, style: 'width:80px' })
-  ]) },
-  { title: '创建', key: 'created_at', render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, (r.created_at || '').replace('T', ' ').slice(0, 16)) },
-  { title: '操作', key: 'actions', render: (r: any) => h('div', { style: 'display:flex;gap:4px' }, [
-    h('button', { style: 'font-size:12px;padding:2px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#6366f1;cursor:pointer', onClick: () => openProject(r.id) }, '打开'),
-    h('button', { style: 'font-size:12px;padding:2px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#475569;cursor:pointer', onClick: () => onProjectDub(r) }, '配音'),
-    h('button', { style: 'font-size:12px;padding:2px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;color:#475569;cursor:pointer', onClick: () => onProjectAssemble(r) }, '合成'),
-    r.final_audio_url
-      ? h('a', { style: 'font-size:12px;padding:2px 10px;border:1px solid #bbf7d0;border-radius:6px;background:#f0fdf4;color:#16a34a;cursor:pointer;text-decoration:none', href: `/api/novel/projects/${r.id}/final` }, '下载')
-      : h('span', { style: 'font-size:12px;padding:2px 10px;color:#cbd5e1' }, '下载'),
-  ]) },
+  { title: '文件', key: 'filename', width: 160, ellipsis: { tooltip: true } },
+  {
+    title: '状态', key: 'status', width: 90,
+    render: (r: any) => h(NTag, { size: 'small', type: statusType(r.status) }, { default: () => r.status }),
+  },
+  {
+    title: '进度', key: 'progress', width: 130,
+    render: (r: any) => h('div', { style: 'display:flex;align-items:center;gap:6px' }, [
+      `${r.done_count || 0}/${r.total_count || 0}`,
+      h(NProgress, { size: 'small', percentage: r.total_count ? Math.round((r.done_count || 0) / r.total_count * 100) : 0, showIndicator: false, style: 'width:60px' }),
+    ]),
+  },
+  { title: '创建', key: 'created_at', width: 130, render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, fmtTime(r.created_at)) },
+  { title: '终了时间', key: 'ended_at', width: 130, render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, fmtTime(r.ended_at)) },
+  { title: '耗时', key: 'elapsed_sec', width: 80, render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, fmtDur(r.elapsed_sec)) },
+  {
+    title: '操作', key: 'actions', width: 260,
+    render: (r: any) => h('div', { style: 'display:flex;gap:4px;flex-wrap:wrap' }, [
+      h(NButton, { size: 'tiny', type: 'primary', onClick: () => openProject(r.id) }, { default: () => t('common.open') || '打开' }),
+      h(NButton, { size: 'tiny', onClick: () => onProjectDub(r) }, { default: () => t('novel.dubAll') || '配音' }),
+      h(NButton, { size: 'tiny', onClick: () => onAssemble(r.id) }, { default: () => t('novel.assemble') || '合成' }),
+      h(NButton, { size: 'tiny', disabled: !r.final_audio_url, onClick: () => onProjectPlay(r) }, { default: () => playingProjectId.value === r.id ? '…' : (t('common.play') || '播放') }),
+      h(NDropdown, {
+        options: downloadOptions(r.id), trigger: 'click',
+        onSelect: (key: string) => onDownloadSelect(key, r.id),
+      }, {
+        default: () => h(NButton, { size: 'tiny', type: r.final_audio_url ? 'success' : 'default', disabled: !r.final_audio_url }, { default: () => t('novel.download') || '下载' }),
+      }),
+      h(NButton, { size: 'tiny', quaternary: true, type: 'error', onClick: () => onDeleteProject(r) }, { default: () => '✕' }),
+    ]),
+  },
 ])
 
 onMounted(async () => {
   await loadVoices(); await loadProjects()
   timer = window.setInterval(async () => {
-    if (current.value && ['dubbing','assembling','ready','done'].includes(current.value.status)) {
+    if (current.value && ['dubbing','assembling'].includes(current.value.status)) {
       current.value = (await getNovel(current.value.id)).data
     }
-    await loadProjects()
+    // only refresh list when there's actually an active dubbing/assembling task
+    const active = projects.value.filter((p: any) => ['dubbing','assembling'].includes(p.status))
+    if (active.length > 0) {
+      await loadProjects()
+    }
   }, 2500)
 })
 onUnmounted(() => { if (timer) clearInterval(timer) })
@@ -182,11 +337,12 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
 <template>
   <div class="page-wrap" style="max-width:1100px">
+    <!-- Step bar -->
     <n-steps :current="step" size="small" class="mb-16" :number-style="{ fontWeight: 700 }">
       <n-step v-for="(s, i) in stepItems" :key="i" :title="s" />
     </n-steps>
 
-    <!-- Step 0: square drag upload -->
+    <!-- Step 0: upload -->
     <n-card v-if="step === 0" bordered>
       <n-upload :show-file-list="false" accept=".txt" :custom-request="customUpload">
         <n-upload-dragger style="width:320px; height:240px; margin:0 auto; display:flex; align-items:center; justify-content:center">
@@ -200,89 +356,119 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
     </n-card>
 
     <template v-else-if="current">
-      <!-- Step 1: raw text preview + analyze characters -->
+      <!-- Step 1: characters -->
       <n-card v-if="step === 1" bordered class="mb-16">
         <template #header>{{ t('novel.stepCharacters') }}</template>
         <div style="background:#f8fafc; padding:12px; border-radius:8px; max-height:200px; overflow:auto; font-size:13px; color:#475569">
           {{ current.raw_text }}
         </div>
-        <div class="mt-16" style="display:flex; justify-content:space-between">
-          <n-button @click="step = 0">{{ t('novel.prev') }}</n-button>
+        <div class="mt-16" v-if="!current.characters?.length">
           <n-button type="primary" :loading="analyzing" @click="onAnalyze">🤖 {{ t('novel.analyzeBtn') }}</n-button>
         </div>
-        <div v-if="current.characters?.length" class="mt-16">
-          <div v-for="c in current.characters" :key="c.id" style="padding:4px 0">
+        <div v-else class="mt-16">
+          <div v-for="c in current.characters" :key="c.id"
+            style="display:flex; align-items:center; gap:10px; padding:6px 0; flex-wrap:wrap">
             <n-tag :bordered="false" :color="{ color: c.color + '22', textColor: c.color, borderColor: c.color }">{{ c.name }}</n-tag>
+            <n-select v-model:value="c.voice_id" :options="flatVoices" filterable size="small" style="width:260px" />
+            <n-input v-model:value="c.instruct" :placeholder="t('studio.instructPlaceholder')" size="small" style="flex:1; min-width:160px" />
           </div>
-          <n-button type="primary" class="mt-16" @click="step = 2">{{ t('novel.next') }} →</n-button>
+          <div style="display:flex; gap:8px; margin-top:10px">
+            <n-input v-model:value="newCharName" size="small" placeholder="手动追加角色名…" style="width:200px" @keyup.enter="onAddCharacter" />
+            <n-button size="small" @click="onAddCharacter">{{ t('common.create') }}</n-button>
+          </div>
+        </div>
+        <!-- bottom nav -->
+        <div class="mt-16" style="display:flex; justify-content:space-between">
+          <n-button @click="closeWizard">← {{ t('novel.prev') || '上一步' }}</n-button>
+          <n-button type="primary" :disabled="!current.characters?.length" @click="saveCharacters().then(() => step = 2)">{{ t('novel.next') || '下一步' }} →</n-button>
         </div>
       </n-card>
 
-      <!-- Step 2: assign voices + split -->
+      <!-- Step 2: lines review -->
       <n-card v-if="step === 2" bordered class="mb-16">
-        <template #header>{{ t('novel.stepCharacters') }} · {{ t('novel.voices') }}</template>
-        <div v-for="c in current.characters" :key="c.id"
-          style="display:flex; align-items:center; gap:10px; padding:6px 0; flex-wrap:wrap">
-          <n-tag :bordered="false" :color="{ color: c.color + '22', textColor: c.color, borderColor: c.color }">{{ c.name }}</n-tag>
-          <n-select v-model:value="c.voice_id" :options="flatVoices" filterable size="small" style="width:260px" />
-          <n-input v-model:value="c.instruct" :placeholder="t('studio.instructPlaceholder')" size="small" style="flex:1; min-width:160px" />
-        </div>
-        <div style="display:flex; gap:8px; margin-top:10px">
-          <n-input v-model:value="newCharName" size="small" placeholder="手动追加角色名…" style="width:200px" @keyup.enter="onAddCharacter" />
-          <n-button size="small" @click="onAddCharacter">{{ t('common.create') }}</n-button>
-        </div>
-        <div class="mt-16" style="display:flex; justify-content:space-between">
-          <n-button @click="step = 1">{{ t('novel.prev') }}</n-button>
+        <template #header>{{ t('novel.stepLines') }} ({{ totalCount }})</template>
+        <div v-if="!current.lines?.length">
           <n-button type="primary" :loading="splitting" @click="onSplit">✂️ {{ t('novel.splitBtn') }}</n-button>
         </div>
-        <div v-if="current.lines?.length" class="mt-16">
-          <n-button type="primary" @click="step = 3">{{ t('novel.next') }} →</n-button>
-        </div>
-      </n-card>
-
-      <!-- Step 3: lines review + dub -->
-      <n-card v-if="step === 3" bordered class="mb-16">
-        <template #header>{{ t('novel.stepLines') }} ({{ totalCount }})</template>
-        <div v-for="line in current.lines" :key="line.id"
-          style="display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid #f1f5f9">
-          <n-tag size="tiny" :type="typeTag(line.type)">{{ t(`novel.${line.type}`) }}</n-tag>
-          <n-tag size="tiny" :type="statusType(line.status)">{{ line.status }}</n-tag>
-          <div style="flex:1; min-width:0">
-            <n-input v-model:value="line.text" type="textarea" :autosize="{ minRows:1, maxRows:4 }" size="small" @blur="onEditLine(line)" />
-            <div style="display:flex; gap:8px; margin-top:4px">
-              <n-select v-model:value="line.character_id" size="tiny" style="width:120px"
-                :options="current.characters.map((c:any)=>({label:c.name, value:c.id}))" @update:value="onEditLine(line)" />
-              <n-input v-model:value="line.instruct" size="tiny" style="width:180px" :placeholder="t('studio.instructPlaceholder')" @blur="onEditLine(line)" />
+        <div v-else class="mt-8">
+          <div v-for="line in current.lines" :key="line.id"
+            style="display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid #f1f5f9">
+            <n-tag size="tiny" :type="typeTag(line.type)">{{ t(`novel.${line.type}`) }}</n-tag>
+            <n-tag size="tiny" :type="statusType(line.status)">{{ line.status }}</n-tag>
+            <div style="flex:1; min-width:0">
+              <n-input v-model:value="line.text" type="textarea" :autosize="{ minRows:1, maxRows:4 }" size="small" @blur="onEditLine(line)" />
+              <div style="display:flex; gap:8px; margin-top:4px">
+                <n-select v-model:value="line.character_id" size="tiny" style="width:120px"
+                  :options="current.characters.map((c:any)=>({label:c.name, value:c.id}))" @update:value="onEditLine(line)" />
+                <n-input v-model:value="line.instruct" size="tiny" style="width:200px" :placeholder="t('studio.instructPlaceholder')" @blur="onEditLine(line)" />
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px">
+              <n-button size="tiny" quaternary :disabled="!line.audio_url" @click="playLine(line)">{{ playingId===line.id?'…':t('common.play') }}</n-button>
+              <n-button size="tiny" quaternary @click="onRedub(line)">{{ t('novel.redub') }}</n-button>
+              <n-button size="tiny" quaternary type="error" @click="onDeleteLine(line)">{{ t('common.delete') }}</n-button>
             </div>
           </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <n-button size="tiny" quaternary :disabled="!line.audio_url" @click="playLine(line)">{{ playingId===line.id?'…':t('common.play') }}</n-button>
-            <n-button size="tiny" quaternary @click="onRedub(line)">{{ t('novel.redub') }}</n-button>
-            <n-button size="tiny" quaternary type="error" @click="onDeleteLine(line)">{{ t('common.delete') }}</n-button>
-          </div>
         </div>
-        <div class="mt-16" style="display:flex; justify-content:space-between; align-items:center">
-          <n-button @click="step = 2">{{ t('novel.prev') }}</n-button>
-          <n-button type="primary" :loading="dubbing" @click="onDub">▶️ {{ t('novel.dubAll') }}</n-button>
+        <div class="mt-16" style="display:flex; justify-content:space-between">
+          <n-button @click="step = 1">← {{ t('novel.prev') || '上一步' }}</n-button>
+          <n-button type="primary" :disabled="!current.lines?.length" @click="step = 3">{{ t('novel.next') || '下一步' }} →</n-button>
         </div>
       </n-card>
 
-      <!-- Step 4: progress -->
-      <n-card v-if="step === 4 || (step === 3 && current.status !== 'ready')" bordered class="mb-16">
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+      <!-- Step 3: dub -->
+      <n-card v-if="step === 3" bordered class="mb-16">
+        <template #header>{{ t('novel.stepDub') }}</template>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 0">
           <n-tag :type="statusType(current.status)">{{ current.status }}</n-tag>
           <n-progress style="flex:1; min-width:200px" :percentage="totalCount ? Math.round(doneCount/totalCount*100) : 0" />
-          <span style="color:#64748b; font-size:12px">{{ doneCount }}/{{ totalCount }}</span>
-          <n-button size="small" :loading="dubbing" @click="onDub">{{ t('novel.dubAll') }}</n-button>
-          <n-button size="small" :loading="assembling" @click="onAssemble">{{ t('novel.assemble') }}</n-button>
-          <n-button v-if="current.final_audio_url" size="small" type="success" tag="a" :href="`/api/novel/projects/${current.id}/final`">{{ t('novel.download') }}</n-button>
+          <span style="color:#64748b; font-size:13px">{{ doneCount }}/{{ totalCount }}</span>
+        </div>
+        <div v-if="current.final_audio_url" class="mt-8">
+          <n-alert type="success" :show-icon="true">{{ t('novel.assembled') || '合成完成，可在下方履历表下载' }}</n-alert>
+        </div>
+        <div class="mt-16" style="display:flex; justify-content:space-between">
+          <n-button @click="step = 2">← {{ t('novel.prev') || '上一步' }}</n-button>
+          <n-button type="primary" size="large" :loading="dubbing" @click="onDub">▶️ {{ t('novel.dubAll') }}</n-button>
         </div>
       </n-card>
     </template>
 
-    <!-- History table with expandable rows -->
+    <!-- Expanded project lines detail -->
+    <n-card v-if="expandedProject" bordered class="mt-16">
+      <template #header>
+        <span>{{ expandedProject.filename }} — {{ t('novel.linesDetail') || '句详情' }}</span>
+      </template>
+      <template #header-extra>
+        <n-button size="tiny" quaternary @click="expandedPid = null">✕</n-button>
+      </template>
+      <div v-for="line in expandedProject.lines" :key="line.id"
+        style="display:flex; gap:8px; padding:8px 0; border-bottom:1px solid #f1f5f9; align-items:flex-start; font-size:13px">
+        <n-tag size="tiny" :type="statusType(line.status)" style="flex-shrink:0;margin-top:2px">{{ line.status }}</n-tag>
+        <n-tag size="tiny" :type="typeTag(line.type)" style="flex-shrink:0;margin-top:2px">{{ t(`novel.${line.type}`) }}</n-tag>
+        <div style="flex:1;min-width:0">
+          <n-input v-model:value="line.text" type="textarea" :autosize="{minRows:1,maxRows:4}" size="small" @blur="onEditLineFromProject(expandedProject.id, line)" />
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;color:#64748b;font-size:12px">
+            <n-select v-model:value="line.character_id" size="tiny" style="width:110px"
+              :options="expandedProject.characters.map((c:any)=>({label:c.name, value:c.id}))"
+              @update:value="onEditLineFromProject(expandedProject.id, line)" />
+            <span style="color:#94a3b8">{{ charGender(expandedProject, line.character_id) }}</span>
+            <span style="color:#94a3b8">⏱ {{ fmtTime(line.started_at) }} → {{ fmtTime(line.finished_at) }}</span>
+            <span style="color:#94a3b8">耗时 {{ fmtDur(line.elapsed_sec) }}</span>
+            <n-input v-model:value="line.instruct" size="tiny" style="width:200px" :placeholder="t('studio.instructPlaceholder')" @blur="onEditLineFromProject(expandedProject.id, line)" />
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+          <n-button size="tiny" quaternary :disabled="!line.audio_url" @click="playLineFromProject(expandedProject.id, line)">{{ t('common.play') }}</n-button>
+          <n-button size="tiny" quaternary @click="redubFromProject(expandedProject.id, line)">{{ t('novel.redub') }}</n-button>
+          <n-button size="tiny" quaternary type="error" @click="onDeleteLineFromProject(expandedProject.id, line)">{{ t('common.delete') }}</n-button>
+        </div>
+      </div>
+    </n-card>
+
+    <!-- History table -->
     <n-card bordered :title="t('history.title')">
-      <n-data-table :columns="tableColumns" :data="projects" size="small" :pagination="{ pageSize: 8 }" />
+      <n-data-table :columns="tableColumns" :data="projects" :row-key="(r:any)=>r.id" size="small" :pagination="{ pageSize: 8 }" />
     </n-card>
   </div>
 </template>

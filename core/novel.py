@@ -289,6 +289,7 @@ def _project_dir(pid: str) -> str:
 
 def dub_line(project: dict, line: dict) -> None:
     """Synthesize one line. Mutates line status/audio fields; caller persists."""
+    from datetime import datetime
     char = next((c for c in project["characters"] if c["id"] == line["character_id"]), None)
     voice_id = char["voice_id"] if char else "preset:novel_m_uncle"
     voice = resolve_voice(voice_id)
@@ -296,11 +297,13 @@ def dub_line(project: dict, line: dict) -> None:
     if instruct and voice.get("type") == "preset":
         voice["instruct"] = instruct
 
+    t0 = datetime.now()
     result = engine.synthesize(
         voice_map={"zh": voice, "ja": voice, "en": voice},
         text=line["text"],
         language="auto",
     )
+    elapsed = (datetime.now() - t0).total_seconds()
     d = _project_dir(project["id"])
     fname = f"line_{line['id']}.wav"
     path = os.path.join(d, fname)
@@ -309,6 +312,9 @@ def dub_line(project: dict, line: dict) -> None:
     line["duration_sec"] = round(len(result["wav"]) / result["sr"], 2)
     line["status"] = "done"
     line["error"] = None
+    line["started_at"] = t0.isoformat(timespec="seconds")
+    line["finished_at"] = datetime.now().isoformat(timespec="seconds")
+    line["elapsed_sec"] = round(elapsed, 2)
 
 
 def assemble(project: dict) -> str:

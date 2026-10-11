@@ -23,11 +23,14 @@ const tasks = ref<any[]>([])
 const playingId = ref<string | null>(null)
 let timer: number | null = null
 
+function langTag(l?: string) {
+  return l === 'ja' ? '🇯🇵' : l === 'en' ? '🇬🇧' : '🇨🇳'
+}
 const allOptions = computed(() => [
-  ...presetVoices.value.map((v: any) => ({ label: localLabel(v), value: v.id })),
+  ...presetVoices.value.map((v: any) => ({ label: `${langTag(v.language)} ${localLabel(v)}`, value: v.id })),
   ...customVoices.value
     .filter((v: any) => v.status === 'ready')
-    .map((v: any) => ({ label: `${v.name} [${t(`voiceType.${v.type}`)}]`, value: v.id }))
+    .map((v: any) => ({ label: `${langTag(v.language)} ${v.name} [${t(`voiceType.${v.type}`)}]`, value: v.id }))
 ])
 
 onMounted(async () => {
@@ -121,9 +124,9 @@ function statusType(s: string) {
 
 <template>
   <div class="page-wrap" style="max-width: 1400px">
-    <n-grid :cols="24" :responsive="['screen']" :x-gap="16" style="align-items:start">
+    <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap">
       <!-- Left: input form -->
-      <n-gi :span="24" :span-tablet="12" :span-laptop="10" :span-mobile="24">
+      <div style="flex: 0 0 420px; min-width: 320px">
         <n-card bordered :title="t('studio.title')">
           <n-input v-model:value="text" type="textarea" :rows="8"
             :placeholder="t('studio.textPlaceholder')" show-count />
@@ -143,16 +146,16 @@ function statusType(s: string) {
             {{ t('studio.synthesize') }}
           </n-button>
         </n-card>
-      </n-gi>
+      </div>
 
       <!-- Right: task list (merged history) -->
-      <n-gi :span="24" :span-tablet="12" :span-laptop="14" :span-mobile="24">
+      <div style="flex:1; min-width: 320px">
         <n-card bordered :title="t('history.title')" class="mb-16">
           <template #header-extra>
             <n-button size="tiny" quaternary @click="loadTasks">{{ t('common.refresh') }}</n-button>
           </template>
-          <n-grid v-if="tasks.length" :cols="2" :responsive="['screen']" :x-gap="12" :y-gap="12">
-            <n-gi v-for="task of tasks" :key="task.id" :span="2" :span-tablet="2" :span-laptop="1" :span-mobile="2">
+          <div v-if="tasks.length" style="display:flex; flex-direction:column; gap:10px">
+            <div v-for="task of tasks" :key="task.id">
               <n-card size="small" :bordered="true" style="height:100%">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
                   <div style="display:flex; align-items:center; gap:6px; min-width:0">
@@ -186,11 +189,11 @@ function statusType(s: string) {
                   {{ task.error }}
                 </div>
               </n-card>
-            </n-gi>
-          </n-grid>
+            </div>
+          </div>
           <n-empty v-else :description="t('history.empty')" class="mt-16" />
         </n-card>
-      </n-gi>
-    </n-grid>
+      </div>
+    </div>
   </div>
 </template>

@@ -74,7 +74,7 @@ onMounted(async () => {
             @update:collapsed="collapsed = $event"
             style="background: linear-gradient(180deg, #312e81 0%, #1e1b4b 100%)"
           >
-            <div style="display:flex; align-items:center; gap:10px; padding:18px 16px; color:#fff">
+            <div :style="{ display:'flex', alignItems:'center', justifyContent:'center', gap:'10px', padding: collapsed ? '14px 0' : '18px 16px', color:'#fff' }">
               <n-icon size="22" color="#a5b4fc"><sparkles-outline /></n-icon>
               <span v-if="!collapsed" style="font-weight:700; font-size:16px; white-space:nowrap">{{ t('app.name') }}</span>
             </div>
@@ -83,6 +83,7 @@ onMounted(async () => {
               :items="menuItems"
               :collapsed="collapsed"
               collapsed-width="64"
+              :icon-size="20"
               inverted
               @update:value="onSelect"
               :theme-overrides="{
