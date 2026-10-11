@@ -1,0 +1,69 @@
+# [Common Settings]
+PYTHONIOENCODING=utf-8
+APP_ENV=pro
+
+MODEL_PROVIDER=openai
+
+TAVILY_API_KEY=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
+TIMEOUT=300
+MAX_RETRY=2
+
+# [AI settings]
+API_KEY=-
+ENDPOINT=http://192.168.3.28:8088
+MODEL_NAME=qwen3.8-9b
+TEMPERATURE=0.8
+TOP_P=0.5
+MAX_TOKENS=10240
+
+# [App settings]
+APP_HOST=0.0.0.0
+APP_PORT=8000
+DB_ROOT=./db
+CONTENT_SIZE=32768
+# Context window size (tokens), used by the frontend to show the context usage percentage. Adjust per your model.
+UPLOAD_ROOT=./uploads
+# Upload storage root (relative to project root or absolute). Ignored by git.
+
+# TTS engine: genie (local ONNX, default) | edge_tts (Microsoft Edge online) | sapi (Windows voices)
+TTS_ENGINE=
+# Fallback to Windows SAPI voices when the primary engine fails (true/false)
+TTS_FALLBACK=true
+# SAPI voice name fragments per language (empty = auto-pick by detected language)
+SAPI_VOICE_ZH=
+SAPI_VOICE_JA=
+SAPI_VOICE_EN=
+# SAPI speaking speed multiplier (1.0 = normal, 1.3 = 30% faster)
+SAPI_SPEAK_RATE=1.3
+# TTS playback mode: stream (low first-chunk latency) | file (non-streaming, play after full audio)
+TTS_MODE=stream
+# Stream chunk frames (sentence-level streaming; kept for compatibility)
+TTS_STREAM_CHUNK_FRAMES=48
+# genie-tts: preset voices exposed to the frontend (zh/en/jp/auto; auto = mixed output)
+# GENIE_DATA_DIR optional override; default = models/xnnehanglab-geniedata under project root
+# edge_tts engine: default voices per language (Microsoft Edge online voices)
+EDGE_TTS_VOICE_ZH=zh-CN-XiaoxiaoNeural
+EDGE_TTS_VOICE_JA=ja-JP-NanamiNeural
+EDGE_TTS_VOICE_EN=en-US-AriaNeural
+# edge_tts speaking speed multiplier (1.0 = normal, 1.3 = 30% faster); overrides EDGE_TTS_RATE when set
+EDGE_TTS_SPEAK_RATE=1.3
+# edge_tts prosody (optional, e.g. "+10%", "+0Hz")
+EDGE_TTS_RATE=+0%
+EDGE_TTS_VOLUME=+0%
+EDGE_TTS_PITCH=+0Hz
+# edge_tts http(s) proxy for restricted networks (empty = system default)
+EDGE_TTS_PROXY=
+
+# History persistence root (MooFile BSON collections; default = ./db/history)
+HISTORY_ROOT=./db/history
+
+# ===== Qwen3 TTS Studio =====
+TTS_APP_HOST=0.0.0.0
+TTS_APP_PORT=9001
+DATA_ROOT=./data
+WEB_DIST=./web/dist
+TTS_DEVICE=cuda:0
+TTS_MAX_CHARS=120
+MODEL_CUSTOM_VOICE=E:\models\tts\qwen3-tts-12hz-1.7b-custom_voice
+MODEL_VOICE_DESIGN=E:\models\tts\qwen3-tts-12hz-1.7b-voice_design
+MODEL_BASE=E:\models\tts\qwen3-tts-12hz-1.7b-base

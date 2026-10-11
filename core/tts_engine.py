@@ -27,14 +27,38 @@ from core.text_split import QWEN_LANG_MAP, build_segments
 logger = logging.getLogger(__name__)
 
 PRESET_VOICES = [
-    {"speaker": "Vivian", "label_zh": "明亮年轻女声", "language": "zh"},
-    {"speaker": "Serena", "label_zh": "温暖柔和女声", "language": "zh"},
-    {"speaker": "Uncle_Fu", "label_zh": "沉稳男声", "language": "zh"},
-    {"speaker": "Dylan", "label_zh": "北京口音男声", "language": "zh"},
-    {"speaker": "Eric", "label_zh": "四川口音男声", "language": "zh"},
-    {"speaker": "Ryan", "label_zh": "动态英语男声", "language": "en"},
-    {"speaker": "Aiden", "label_zh": "美式英语男声", "language": "en"},
-    {"speaker": "Ono_Anna", "label_zh": "日语女声", "language": "ja"},
+    # ---- female (5) ----
+    {"id": "novel_f_gentle", "speaker": "Serena", "gender": "female", "language": "zh",
+     "instruct": "用温柔舒缓、娓娓道来的语气朗读小说旁白",
+     "label_zh": "温柔姐姐", "label_en": "Gentle Sister", "label_ja": "優しいお姉さん"},
+    {"id": "novel_f_bright", "speaker": "Vivian", "gender": "female", "language": "zh",
+     "instruct": "用活泼明亮、充满朝气的少女语气朗读",
+     "label_zh": "明亮少女", "label_en": "Bright Girl", "label_ja": "明るい少女"},
+    {"id": "novel_f_mature", "speaker": "Serena", "gender": "female", "language": "zh",
+     "instruct": "用知性冷静、成熟优雅的御姐语气朗读",
+     "label_zh": "知性御姐", "label_en": "Mature Lady", "label_ja": "知的な女性"},
+    {"id": "novel_f_cool", "speaker": "Vivian", "gender": "female", "language": "zh",
+     "instruct": "用清冷疏离、空灵飘渺的语气朗读",
+     "label_zh": "清冷仙子", "label_en": "Cool Fairy", "label_ja": "クールな妖精"},
+    {"id": "novel_f_emotional", "speaker": "Serena", "gender": "female", "language": "zh",
+     "instruct": "用深情细腻、富有感情和代入感的语气朗读",
+     "label_zh": "深情女主", "label_en": "Emotional Lead", "label_ja": "情熱的なヒロイン"},
+    # ---- male (5) ----
+    {"id": "novel_m_uncle", "speaker": "Uncle_Fu", "gender": "male", "language": "zh",
+     "instruct": "用沉稳厚重、值得信赖的大叔语气朗读",
+     "label_zh": "沉稳大叔", "label_en": "Steady Uncle", "label_ja": "落ち着いた叔父"},
+    {"id": "novel_m_warm", "speaker": "Uncle_Fu", "gender": "male", "language": "zh",
+     "instruct": "用温和亲切、干净清朗的青年男子语气朗读",
+     "label_zh": "温暖青年", "label_en": "Warm Youth", "label_ja": "温かい青年"},
+    {"id": "novel_m_magnetic", "speaker": "Uncle_Fu", "gender": "male", "language": "zh",
+     "instruct": "用低沉磁性、富有魅力和气泡音的语气朗读",
+     "label_zh": "低沉磁性", "label_en": "Magnetic Voice", "label_ja": "低音ボイス"},
+    {"id": "novel_m_cold", "speaker": "Uncle_Fu", "gender": "male", "language": "zh",
+     "instruct": "用冷峻克制、严肃威严的男主语气朗读",
+     "label_zh": "冷峻男主", "label_en": "Cold Hero", "label_ja": "クールな主人公"},
+    {"id": "novel_m_story", "speaker": "Dylan", "gender": "male", "language": "zh",
+     "instruct": "用抑扬顿挫、富有戏剧张力的说书人语气朗读",
+     "label_zh": "说书人", "label_en": "Storyteller", "label_ja": "語り部"},
 ]
 
 _CLONE_PROMPT_DIR = settings.DB_DIR / "clone_prompts"
@@ -176,14 +200,22 @@ class TTSEngine:
 
     # ---- voice design ----
     def design_create(self, name: str, instruct: str, text: str, language: str) -> dict:
-        """Generate a designed voice preview. Returns voice record + preview audio."""
+        """Generate a designed voice preview in zh/ja/en so the same voice
+        character can be used across languages in mixed synthesis."""
+        voice_id = f"v_design_{uuid.uuid4().hex[:10]}"
+        samples = {
+            "zh": text or "你好，欢迎来到我的世界。",
+            "ja": "こんにちは、よろしくお願いします。",
+            "en": "Hello, welcome to my world. Nice to meet you.",
+        }
+        audio_urls: dict[str, str] = {}
         with self._infer_lock:
             model = self.design_model()
-            qwen_lang = QWEN_LANG_MAP.get(language, "Auto")
-            wavs, sr = model.generate_voice_design(text=text, language=qwen_lang, instruct=instruct)
-        voice_id = f"v_design_{uuid.uuid4().hex[:10]}"
-        filename = f"{voice_id}_preview.wav"
-        audio_url = self.save_wav(np.asarray(wavs[0]).squeeze(), sr, filename)
+            for lang, sample in samples.items():
+                qwen_lang = QWEN_LANG_MAP.get(lang, "Auto")
+                wavs, sr = model.generate_voice_design(text=sample, language=qwen_lang, instruct=instruct)
+                fname = f"{voice_id}_{lang}.wav"
+                audio_urls[lang] = self.save_wav(np.asarray(wavs[0]).squeeze(), sr, fname)
         return {
             "id": voice_id,
             "name": name,
@@ -191,7 +223,10 @@ class TTSEngine:
             "language": language,
             "instruct": instruct,
             "design_text": text,
-            "audio_url": audio_url,
+            "audio_url": audio_urls.get("zh"),
+            "audio_url_zh": audio_urls.get("zh"),
+            "audio_url_ja": audio_urls.get("ja"),
+            "audio_url_en": audio_urls.get("en"),
             "status": "ready",
         }
 

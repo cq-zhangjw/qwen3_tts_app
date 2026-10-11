@@ -40,6 +40,24 @@ app.include_router(tts.router)
 def _startup():
     worker.start_worker()
     logger.info("%s v%s started on port %s", settings.APP_NAME, settings.VERSION, settings.APP_PORT)
+    # Background: pre-generate cached previews for all preset voices (skips cached).
+    import threading
+    from core.tts_engine import PRESET_VOICES, engine
+
+    def _warm():
+        for v in PRESET_VOICES:
+            cache = settings.AUDIO_DIR / "previews" / f"preset_{v['id']}.wav"
+            if cache.exists():
+                continue
+            try:
+                voice = {"type": "preset", "speaker": v["speaker"],
+                         "language": "zh", "instruct": v.get("instruct")}
+                result = engine.synthesize(voice=voice, text="你好，很高兴认识你，欢迎来到我的世界。", language="zh")
+                engine.save_wav(result["wav"], result["sr"], f"previews/preset_{v['id']}.wav")
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("warmup preview failed %s: %s", v["id"], exc)
+
+    threading.Thread(target=_warm, daemon=True).start()
 
 
 # ---- static audio ----

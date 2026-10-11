@@ -67,8 +67,16 @@ def _dispatch(job: dict) -> None:
 def _resolve_voice(task: dict) -> dict:
     voice_id = task["voice_id"]
     if voice_id.startswith("preset:"):
-        speaker = voice_id.split("preset:", 1)[1]
-        return {"type": "preset", "speaker": speaker, "language": "zh"}
+        vid = voice_id.split("preset:", 1)[1]
+        preset = next((v for v in PRESET_VOICES if v["id"] == vid), None)
+        if not preset:
+            raise FileNotFoundError(f"preset voice not found: {vid}")
+        return {
+            "type": "preset",
+            "speaker": preset["speaker"],
+            "language": preset["language"],
+            "instruct": preset.get("instruct"),
+        }
     voice = db.get_voice(voice_id)
     if not voice:
         raise FileNotFoundError(f"voice not found: {voice_id}")
@@ -133,17 +141,20 @@ def _run_clone(job: dict) -> None:
 def _run_design(job: dict) -> None:
     voice_id = job["voice_id"]
     created = engine.design_create(job["name"], job["instruct"], job["text"], job["language"])
+    fresh_id = created["id"]
     created["id"] = voice_id
     created["created_at"] = now_iso()
-    # design_create saved preview to <fresh_id>_preview.wav; rename to reserved id.
+    # design_create saved <fresh_id>_{zh,ja,en}.wav; rename to reserved voice_id.
     import os
-    old_url = created["audio_url"]
-    old_path = settings.AUDIO_DIR / os.path.basename(old_url)
-    new_name = f"{voice_id}_preview.wav"
-    new_path = settings.AUDIO_DIR / new_name
-    if old_path.exists() and old_path != new_path:
-        os.replace(old_path, new_path)
-    created["audio_url"] = f"/audio/{new_name}"
+    for lang in ("zh", "ja", "en"):
+        old_name = f"{fresh_id}_{lang}.wav"
+        new_name = f"{voice_id}_{lang}.wav"
+        old_path = settings.AUDIO_DIR / old_name
+        new_path = settings.AUDIO_DIR / new_name
+        if old_path.exists() and old_path != new_path:
+            os.replace(old_path, new_path)
+        created[f"audio_url_{lang}"] = f"/audio/{new_name}"
+    created["audio_url"] = created["audio_url_zh"]
     db.update_voice(voice_id, {k: v for k, v in created.items() if k != "id"})
 
 

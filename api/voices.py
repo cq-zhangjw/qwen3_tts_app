@@ -42,13 +42,14 @@ def get_voice(voice_id: str):
 
 
 def _resolve_voice_record(voice_id: str) -> dict:
-    """Resolve either a preset voice id (preset:Speaker) or a stored custom voice."""
+    """Resolve either a preset voice id (preset:<preset_id>) or a stored custom voice."""
     if voice_id.startswith("preset:"):
-        speaker = voice_id.split("preset:", 1)[1]
-        preset = next((v for v in PRESET_VOICES if v["speaker"] == speaker), None)
+        vid = voice_id.split("preset:", 1)[1]
+        preset = next((v for v in PRESET_VOICES if v["id"] == vid), None)
         if not preset:
             raise HTTPException(status_code=404, detail="preset voice not found")
-        return {"type": "preset", "speaker": speaker, "language": preset["language"]}
+        return {"type": "preset", "speaker": preset["speaker"],
+                "language": preset["language"], "instruct": preset.get("instruct")}
     voice = db.get_voice(voice_id)
     if not voice:
         raise HTTPException(status_code=404, detail="voice not found")

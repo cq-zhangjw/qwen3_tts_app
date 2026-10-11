@@ -1,137 +1,74 @@
 """Mixed-language segmentation and sentence splitting for long TTS text.
 
-Adapted from the edge-tts reference implementation: split long text into
-segments (split -> synth each -> concatenate output). Supports zh/ja/en/auto.
+Language strategy (sentence-based, robust):
+  - Split text into sentences on strong punctuation (。！？!?… newline).
+  - A sentence that contains ANY kana (hiragana/katakana) is Japanese,
+    INCLUDING all kanji in that sentence. Real Japanese sentences always
+    carry kana (particles / inflections), so kanji near kana are never zh.
+  - A sentence with CJK hanzi but no kana is Chinese.
+  - A sentence with Latin letters but no kana/hanzi is English.
+Long runs are further chunked by sentence boundary to stay within limits.
 """
 import re
 
 _EN_RE = re.compile(r"[A-Za-z\uFF21-\uFF3A\uFF41-\uFF5A]")
 _KANA_RE = re.compile(r"[\u3040-\u309F\u30A0-\u30FF\u31F0-\u31FF\uFF66-\uFF9D]")
 _CJK_RE = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]")
-_STRONG_PUNCT = set("。！？!?…")
-_CLAUSE_BREAK = set("。！？!?…，、；：,;:\n")
 
-
-def _classify(ch: str) -> str:
-    if _EN_RE.match(ch):
-        return "en"
-    if _KANA_RE.match(ch):
-        return "kana"
-    if _CJK_RE.match(ch):
-        return "cjk"
-    return "neutral"
+# split-off punctuation (kept attached to the sentence before it)
+_SENT_SPLIT_RE = re.compile(r"(?<=[。！？!?…\n；;])")
 
 
 def detect_language(text: str) -> str:
     """Lightweight detection: kana -> ja; hanzi -> zh; otherwise en."""
     if not text:
         return "en"
-    if re.search(r"[\u3040-\u309f\u30a0-\u30ff\uff66-\uff9f]", text):
+    if _KANA_RE.search(text):
         return "ja"
-    if re.search(r"[\u4e00-\u9fff]", text):
+    if _CJK_RE.search(text):
         return "zh"
     return "en"
 
 
+def _classify_sentence(s: str) -> str:
+    has_kana = bool(_KANA_RE.search(s))
+    has_cjk = bool(_CJK_RE.search(s))
+    has_en = bool(_EN_RE.search(s))
+    if has_kana:
+        return "ja"
+    if has_cjk:
+        return "zh"
+    if has_en:
+        return "en"
+    return "neutral"
+
+
 def split_language_segments(text: str, merge_en_with_cjk: bool = True) -> list[tuple[str, str]]:
-    """Split mixed text into [(lang, text), ...], lang in {'zh','ja','en'}."""
+    """Split mixed text into [(lang, text), ...], lang in {'zh','ja','en'}.
+
+    Sentence-based: kana anywhere in a sentence makes the whole sentence ja,
+    so Japanese kanji are no longer misclassified as Chinese.
+    """
     if not text or not text.strip():
         return []
 
-    runs = []
-    for ch in text:
-        cls = _classify(ch)
-        if runs and runs[-1][0] == cls and not runs[-1][2] and not runs[-1][3]:
-            runs[-1] = (cls, runs[-1][1] + ch, False, False)
-        else:
-            runs.append((cls, ch, False, False))
-
-    merged = []
-    for cls, chars, _, _ in runs:
-        if cls == "neutral":
-            if merged:
-                c, t, pf, sf_ = merged[-1]
-                merged[-1] = (c, t + chars, pf, True)
-            else:
-                merged.append((cls, chars, False, False))
-        else:
-            merged.append((cls, chars, False, False))
-
-    if merged and merged[0][0] == "neutral":
-        _cls, chars, _, _ = merged[0]
-        if len(merged) >= 2:
-            c2, t2, _, sf2 = merged[1]
-            merged[1] = (c2, chars + t2, True, sf2)
-            merged.pop(0)
-        else:
-            return []
-
-    n = len(merged)
-    bounds = [False] * (n + 1)
-    for i in range(n - 1):
-        cls_l, t_l, _, _ = merged[i]
-        cls_r, _, _, _ = merged[i + 1]
-        if cls_l == "en" or cls_r == "en":
-            bounds[i + 1] = True
-        if t_l and t_l[-1] in _STRONG_PUNCT:
-            bounds[i + 1] = True
-
-    langs: list[str | None] = [None] * n
-    i = 0
-    while i < n:
-        j = i
-        while j + 1 < n and not bounds[j + 1]:
-            j += 1
-        kana_idx = [k for k in range(i, j + 1) if merged[k][0] == "kana"]
-        for k in range(i, j + 1):
-            cls = merged[k][0]
-            if cls == "kana":
-                langs[k] = "ja"
-            elif cls == "en":
-                langs[k] = "en"
-            elif cls == "cjk":
-                if not kana_idx:
-                    langs[k] = "zh"
-                    continue
-                nearest = min(kana_idx, key=lambda ki: abs(ki - k))
-                lo, hi = (k, nearest) if k < nearest else (nearest, k)
-                span = "".join(merged[m][1] for m in range(lo, hi + 1))
-                broken = any(ch in _CLAUSE_BREAK for ch in span)
-                langs[k] = "zh" if broken else "ja"
-        i = j + 1
-
-    if merge_en_with_cjk:
-        changed = True
-        while changed:
-            changed = False
-            for i in range(n):
-                if langs[i] != "en":
-                    continue
-                _cls, chars, pf, sf_ = merged[i]
-                if i > 0 and not merged[i - 1][3] and not pf and langs[i - 1] != "en":
-                    c2, t2, pf2, _sf2 = merged[i - 1]
-                    merged[i - 1] = (c2, t2 + chars, pf2, True)
-                    merged.pop(i)
-                    langs.pop(i)
-                    n -= 1
-                    changed = True
-                    break
-                if i + 1 < n and not sf_ and not merged[i + 1][2] and langs[i + 1] != "en":
-                    c2, t2, _pf2, sf2 = merged[i + 1]
-                    merged[i + 1] = (c2, chars + t2, True, sf2)
-                    merged.pop(i)
-                    langs.pop(i)
-                    n -= 1
-                    changed = True
-                    break
-
+    raw = _SENT_SPLIT_RE.split(text)
     segments: list[tuple[str, str]] = []
-    for i in range(n):
-        lang, (_cls, chars, _, _) = langs[i], merged[i]
+    for part in raw:
+        s = part.strip()
+        if not s:
+            continue
+        lang = _classify_sentence(s)
+        if lang == "neutral":
+            # pure punctuation / whitespace: fold into previous segment
+            if segments:
+                prev_lang, prev_text = segments[-1]
+                segments[-1] = (prev_lang, prev_text + s)
+            continue
         if segments and segments[-1][0] == lang:
-            segments[-1] = (lang, segments[-1][1] + chars)
+            segments[-1] = (lang, segments[-1][1] + s)
         else:
-            segments.append((lang or "zh", chars))
+            segments.append((lang, s))
     return [(lang, t.strip()) for lang, t in segments if t.strip()]
 
 
@@ -167,7 +104,6 @@ def split_text(text: str, max_chars: int = 120) -> list[str]:
     return merged or [text]
 
 
-# Map our language codes to qwen_tts language argument strings.
 QWEN_LANG_MAP = {
     "zh": "Chinese",
     "ja": "Japanese",
@@ -177,11 +113,7 @@ QWEN_LANG_MAP = {
 
 
 def build_segments(text: str, language: str, max_chars: int = 120) -> list[dict]:
-    """Build the ordered synthesis plan: [{lang, text, index}, ...].
-
-    - auto: split by language first, then chunk each language run.
-    - fixed language: chunk the whole text by sentence.
-    """
+    """Build the ordered synthesis plan: [{lang, text, index}, ...]."""
     if language == "auto":
         lang_runs = split_language_segments(text)
         if not lang_runs:

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import { createDesign } from '../api'
+import { createDesign, listVoices } from '../api'
 
 const message = useMessage()
 const { t } = useI18n()
@@ -12,7 +12,9 @@ const instruct = ref('')
 const text = ref('')
 const language = ref('zh')
 const submitting = ref(false)
-const previewUrl = ref('')
+const resultVoice = ref<any>(null)
+const playingKey = ref<string | null>(null)
+let timer: number | null = null
 
 const langOptions = [
   { label: t('lang.zh'), value: 'zh' },
@@ -23,20 +25,52 @@ const langOptions = [
 async function onSubmit() {
   if (!instruct.value.trim()) { message.warning(t('design.instructLabel')); return }
   submitting.value = true
+  resultVoice.value = null
   try {
-    await createDesign({
+    const res = await createDesign({
       name: name.value || 'Designed Voice',
       instruct: instruct.value,
       text: text.value || 'こんにちは，你好，hello。',
       language: language.value
     })
     message.success(t('design.success'))
+    pollResult(res.data.id)
   } catch (e: any) {
     message.error(e?.response?.data?.detail || 'Error')
   } finally {
     submitting.value = false
   }
 }
+
+function pollResult(vid: string) {
+  let tries = 0
+  timer = window.setInterval(async () => {
+    tries++
+    try {
+      const res = await listVoices({ type: 'design' })
+      const v = (res.data || []).find((x: any) => x.id === vid)
+      if (v && v.status === 'ready') {
+        resultVoice.value = v
+        if (timer) clearInterval(timer)
+      } else if (v && v.status === 'failed') {
+        message.error(v.error || 'failed')
+        if (timer) clearInterval(timer)
+      }
+    } catch { /* ignore */ }
+    if (tries > 40 && timer) clearInterval(timer)
+  }, 2000)
+}
+
+function play(key: string, url?: string) {
+  if (!url) return
+  if (playingKey.value === key) return
+  playingKey.value = key
+  const audio = new Audio(url)
+  audio.onended = () => (playingKey.value = null)
+  audio.play()
+}
+
+onUnmounted(() => { if (timer) clearInterval(timer) })
 </script>
 
 <template>
@@ -76,6 +110,20 @@ async function onSubmit() {
           {{ t('design.submit') }}
         </n-button>
       </n-form>
+    </n-card>
+
+    <n-card v-if="resultVoice" bordered class="mt-16" :title="resultVoice.name">
+      <n-grid :cols="3" :responsive="['screen']" :x-gap="12">
+        <n-gi v-for="L of ['zh','ja','en']" :key="L">
+          <n-button block :loading="playingKey === L"
+            @click="play(L, resultVoice[`audio_url_${L}`])">
+            {{ t(`lang.${L}`) }} ▶
+          </n-button>
+        </n-gi>
+      </n-grid>
+      <div style="color:#94a3b8; font-size:11px; margin-top:10px">
+        中/日/英三段试听已生成，可在混合合成中保持同一音色。
+      </div>
     </n-card>
   </div>
 </template>

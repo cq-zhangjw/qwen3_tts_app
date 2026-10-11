@@ -49,8 +49,7 @@ uploads/
 models/
 
 # 环境配置备份（含敏感凭据，不提交）
-.env.bak
-*.bak
+.env
 temp_py.txt
 temp_readme.txt
 .venv/

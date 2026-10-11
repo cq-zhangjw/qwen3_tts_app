@@ -5,7 +5,11 @@ import { useI18n } from 'vue-i18n'
 import { createTask, getSystemInfo, listVoices, listTasks, getTask, deleteTask } from '../api'
 
 const message = useMessage()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+function localLabel(v: any) {
+  return v[`label_${locale.value}`] || v.label_zh || v.name || v.id
+}
 
 const text = ref('')
 const voiceId = ref('')
@@ -22,7 +26,7 @@ let timer: number | null = null
 const voiceOptions = computed(() => [
   {
     label: t('voices.filterPreset'),
-    options: presetVoices.value.map(v => ({ label: `${v.label} (${v.speaker})`, value: v.id }))
+    options: presetVoices.value.map(v => ({ label: localLabel(v), value: v.id }))
   },
   {
     label: t('voices.filterClone') + ' / ' + t('voices.filterDesign'),
@@ -154,46 +158,43 @@ function statusType(s: string) {
           <template #header-extra>
             <n-button size="tiny" quaternary @click="loadTasks">{{ t('common.refresh') }}</n-button>
           </template>
-          <n-list v-if="tasks.length">
-            <n-list-item v-for="task of tasks" :key="task.id" style="padding:12px 0">
-              <div style="width:100%">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
-                  <div style="display:flex; align-items:center; gap:8px; min-width:0">
+          <n-grid v-if="tasks.length" :cols="2" :responsive="['screen']" :x-gap="12" :y-gap="12">
+            <n-gi v-for="task of tasks" :key="task.id" :span="2" :span-tablet="2" :span-laptop="1" :span-mobile="2">
+              <n-card size="small" :bordered="true" style="height:100%">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px">
+                  <div style="display:flex; align-items:center; gap:6px; min-width:0">
                     <n-tag size="tiny" :type="statusType(task.status)">{{ t(`status.${task.status}`) }}</n-tag>
                     <strong style="font-size:13px">{{ task.voice_name }}</strong>
-                    <n-tag size="tiny" :bordered="false">{{ task.language }}</n-tag>
                   </div>
-                  <div style="display:flex; gap:6px; flex-shrink:0">
-                    <n-button size="tiny" :disabled="task.status !== 'completed'" @click="onPlay(task)">
+                  <div style="display:flex; gap:4px; flex-shrink:0">
+                    <n-button size="tiny" quaternary :disabled="task.status !== 'completed'" @click="onPlay(task)">
                       {{ playingId === task.id ? '…' : t('common.play') }}
                     </n-button>
-                    <n-button v-if="task.status === 'completed'" size="tiny" tag="a" :href="task.audio_url" download>
+                    <n-button v-if="task.status === 'completed'" size="tiny" quaternary tag="a" :href="task.audio_url" download>
                       {{ t('common.download') }}
                     </n-button>
                     <n-popconfirm @positive-click="onDelete(task)">
                       <template #trigger>
-                        <n-button size="tiny" type="error" ghost>{{ t('common.delete') }}</n-button>
+                        <n-button size="tiny" quaternary type="error">{{ t('common.delete') }}</n-button>
                       </template>
                       {{ t('common.confirm') }}?
                     </n-popconfirm>
                   </div>
                 </div>
-                <div style="color:#64748b; font-size:12px; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">
+                <div style="color:#64748b; font-size:12px; margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical">
                   {{ task.text }}
                 </div>
                 <n-progress v-if="task.status === 'running' || task.status === 'pending'"
                   :percentage="task.progress || 0" :show-indicator="false" height="4" class="mt-16" />
-                <div v-if="task.status === 'completed'" style="color:#94a3b8; font-size:11px; margin-top:4px">
-                  {{ t('history.duration') }}: {{ task.duration_sec }}{{ t('common.seconds') }} ·
-                  {{ t('history.elapsed') }}: {{ task.elapsed_sec }}{{ t('common.seconds') }} ·
-                  {{ task.created_at }}
+                <div v-if="task.status === 'completed'" style="color:#94a3b8; font-size:11px; margin-top:6px">
+                  {{ task.duration_sec }}{{ t('common.seconds') }} · {{ task.elapsed_sec }}{{ t('common.seconds') }} · {{ task.created_at }}
                 </div>
-                <div v-if="task.status === 'failed'" style="color:#ef4444; font-size:11px; margin-top:4px">
+                <div v-if="task.status === 'failed'" style="color:#ef4444; font-size:11px; margin-top:6px">
                   {{ task.error }}
                 </div>
-              </div>
-            </n-list-item>
-          </n-list>
+              </n-card>
+            </n-gi>
+          </n-grid>
           <n-empty v-else :description="t('history.empty')" class="mt-16" />
         </n-card>
       </n-gi>

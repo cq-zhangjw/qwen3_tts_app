@@ -5,7 +5,11 @@ import { useI18n } from 'vue-i18n'
 import { listVoices, deleteVoice, getSystemInfo, previewVoice } from '../api'
 
 const message = useMessage()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+function localLabel(v: any) {
+  return v[`label_${locale.value}`] || v.label_zh || v.name || v.id
+}
 
 const loading = ref(false)
 const filter = ref('all')
@@ -20,7 +24,8 @@ async function load() {
   try {
     const sys = await getSystemInfo()
     presetVoices.value = (sys.data.preset_voices || []).map((v: any) => ({
-      ...v, id: v.id, name: v.label, type: 'preset', status: 'ready', speaker: v.speaker
+      ...v, id: v.id, name: localLabel(v), type: 'preset',
+      status: 'ready', speaker: v.speaker
     }))
     const res = await listVoices({ type: filter.value === 'all' ? undefined : filter.value })
     customVoices.value = res.data || []

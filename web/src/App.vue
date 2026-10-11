@@ -80,6 +80,8 @@ onMounted(async () => {
             <n-menu
               :value="currentKey"
               :items="menuItems"
+              :collapsed="collapsed"
+              collapsed-width="64"
               inverted
               @update:value="onSelect"
               :theme-overrides="{
@@ -91,8 +93,11 @@ onMounted(async () => {
                 itemColorActiveHover: '#4f46e5',
                 itemIconColor: '#c7d2fe',
                 itemIconColorActive: '#ffffff',
-                itemIconColorHover: '#ffffff'
+                itemIconColorHover: '#ffffff',
+                borderRadius: '8px',
+                borderRadiusSmall: '8px'
               }"
+              style="margin: 8px"
             />
           </n-layout-sider>
 
