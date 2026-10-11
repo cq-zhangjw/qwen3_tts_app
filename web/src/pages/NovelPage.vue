@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, h, onMounted, onUnmounted, ref } from 'vue'
-import { NProgress, useMessage } from 'naive-ui'
+import { NProgress, NTag, NButton, useMessage } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import {
   uploadNovel, listNovels, getNovel, dubNovel, redubNovelLine, editNovelLine,
@@ -140,6 +140,22 @@ const stepItems = [
   t('novel.stepUpload'), t('novel.stepCharacters'), t('novel.stepLines'), t('novel.stepDub')
 ]
 
+const tableColumns = computed(() => [
+  { title: '文件', key: 'filename' },
+  { title: '状态', key: 'status', render: (r: any) => h(NTag, { size: 'small', type: statusType(r.status) }, () => r.status) },
+  { title: '进度', key: 'progress', render: (r: any) => h('div', { style: 'display:flex;align-items:center;gap:6px' }, [
+    `${r.done_count || 0}/${r.total_count || 0}`,
+    h(NProgress, { size: 'small', percentage: r.total_count ? Math.round((r.done_count || 0) / r.total_count * 100) : 0, showIndicator: false, style: 'width:80px' })
+  ]) },
+  { title: '创建', key: 'created_at', render: (r: any) => h('span', { style: 'font-size:12px;color:#94a3b8' }, (r.created_at || '').replace('T', ' ').slice(0, 16)) },
+  { title: '操作', key: 'actions', render: (r: any) => h('div', { style: 'display:flex;gap:6px' }, [
+    h('a', { style: 'color:#6366f1;cursor:pointer;font-size:12px', onClick: (e: Event) => { e.preventDefault(); openProject(r.id) } }, '打开'),
+    h('a', { style: 'color:#64748b;cursor:pointer;font-size:12px', onClick: (e: Event) => { e.preventDefault(); onProjectDub(r) } }, '开始配音'),
+    h('a', { style: 'color:#64748b;cursor:pointer;font-size:12px', onClick: (e: Event) => { e.preventDefault(); onProjectAssemble(r) } }, '合成音频'),
+    h('a', { style: r.final_audio_url ? 'color:#22c55e;cursor:pointer;font-size:12px' : 'color:#cbd5e1;font-size:12px', href: r.final_audio_url ? `/api/novel/projects/${r.id}/final` : '#' }, '下载完整音频'),
+  ]) },
+])
+
 onMounted(async () => {
   await loadVoices(); await loadProjects()
   timer = window.setInterval(async () => {
@@ -254,36 +270,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 
     <!-- History table with expandable rows -->
     <n-card bordered :title="t('history.title')">
-      <n-data-table :columns="[
-        { title: '文件', key: 'filename' },
-        { title: '状态', key: 'status' },
-        { title: '进度', key: 'progress', render: (r:any) => h('div', [r.done_count||0, '/', r.total_count||0, ' ', h(nProgress, { percentage: r.total_count?Math.round((r.done_count||0)/r.total_count*100):0, showIndicator:false, style:'width:100px' })]) },
-        { title: '句数', key: 'count', render: (r:any) => `${r.done_count||0}/${r.total_count||0}` },
-        { title: '创建', key: 'created_at' },
-        { title: '操作', key: 'actions' },
-      ]" :data="projects" size="small" :pagination="{ pageSize: 8 }"
-        :row-props="(row:any) => ({ style: 'cursor:pointer', onClick: () => { expandedRow.value = expandedRow.value===row.id?null:row.id } })">
-        <template #status="{ row }"><n-tag size="small" :type="statusType(row.status)">{{ row.status }}</n-tag></template>
-        <template #actions="{ row }">
-          <n-button size="tiny" quaternary @click.stop="openProject(row.id)">打开</n-button>
-          <n-button size="tiny" quaternary @click.stop="onProjectDub(row)">{{ t('novel.dubAll') }}</n-button>
-          <n-button size="tiny" quaternary @click.stop="onProjectAssemble(row)">{{ t('novel.assemble') }}</n-button>
-          <n-button size="tiny" quaternary type="success" tag="a" :href="`/api/novel/projects/${row.id}/final`" :disabled="!row.final_audio_url">{{ t('novel.download') }}</n-button>
-          <n-popconfirm @positive-click="onDeleteProject(row)">
-            <template #trigger><n-button size="tiny" quaternary type="error">{{ t('common.delete') }}</n-button></template>
-            {{ t('common.confirm') }}?
-          </n-popconfirm>
-        </template>
-        <template #expandedRow="{ row }">
-          <div v-if="expandedRow === row.id" style="padding:8px 16px; background:#f8fafc; border-radius:6px">
-            <div v-for="l in row.lines" :key="l.id" style="display:flex; gap:8px; padding:3px 0; font-size:12px; align-items:center">
-              <n-tag size="tiny" :type="statusType(l.status)">{{ l.status }}</n-tag>
-              <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569">{{ l.text }}</span>
-            </div>
-            <div v-if="!row.lines?.length" style="color:#94a3b8; font-size:12px">—</div>
-          </div>
-        </template>
-      </n-data-table>
+      <n-data-table :columns="tableColumns" :data="projects" size="small" :pagination="{ pageSize: 8 }" />
     </n-card>
   </div>
 </template>

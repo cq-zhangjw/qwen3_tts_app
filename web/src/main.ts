@@ -14,9 +14,10 @@ import {
   NLayout, NLayoutSider, NLayoutHeader, NLayoutContent, NLayoutFooter,
   NMenu, NIcon, NButton, NSpace, NGrid, NGi,
   NCard, NTag, NSelect, NInput, NRadioGroup, NRadio, NRadioButton,
-  NDataTable, NUpload, NProgress, NSpin, NTooltip, NPopover, NPopconfirm,
+  NDataTable, NUpload, NUploadDragger, NProgress, NSpin, NTooltip, NPopover, NPopconfirm,
   NEmpty, NBadge, NDivider, NText, NModal, NForm, NFormItem, NScrollbar,
-  NAvatar, NGradientText, NStatistic, NList, NListItem
+  NAvatar, NGradientText, NStatistic, NList, NListItem,
+  NSteps, NStep
 } from 'naive-ui';
 
 const naive = create({
@@ -25,9 +26,10 @@ const naive = create({
     NLayout, NLayoutSider, NLayoutHeader, NLayoutContent, NLayoutFooter,
     NMenu, NIcon, NButton, NSpace, NGrid, NGi,
     NCard, NTag, NSelect, NInput, NRadioGroup, NRadio, NRadioButton,
-    NDataTable, NUpload, NProgress, NSpin, NTooltip, NPopover, NPopconfirm,
+    NDataTable, NUpload, NUploadDragger, NProgress, NSpin, NTooltip, NPopover, NPopconfirm,
     NEmpty, NBadge, NDivider, NText, NModal, NForm, NFormItem, NScrollbar,
-    NAvatar, NGradientText, NStatistic, NList, NListItem
+    NAvatar, NGradientText, NStatistic, NList, NListItem,
+    NSteps, NStep
   ]
 });
 
