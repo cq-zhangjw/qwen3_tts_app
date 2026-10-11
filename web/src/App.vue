@@ -5,13 +5,13 @@ import { useI18n } from 'vue-i18n'
 import { NIcon } from 'naive-ui'
 import {
   MicOutline, PeopleOutline, CopyOutline, ColorWandOutline,
-  TimeOutline, LanguageOutline, SparklesOutline
+  LanguageOutline, SparklesOutline
 } from '@vicons/ionicons5'
 import { getSystemInfo } from './api'
 
 const route = useRoute()
 const router = useRouter()
-const { locale, t } = useI18n()
+const { t } = useI18n()
 
 const collapsed = ref(false)
 const modelLoaded = ref<Record<string, boolean>>({})
@@ -23,8 +23,7 @@ const menuItems = computed(() => [
   { label: t('nav.studio'), key: 'studio', icon: () => h(NIcon, null, { default: () => h(MicOutline) }) },
   { label: t('nav.voices'), key: 'voices', icon: () => h(NIcon, null, { default: () => h(PeopleOutline) }) },
   { label: t('nav.clone'), key: 'clone', icon: () => h(NIcon, null, { default: () => h(CopyOutline) }) },
-  { label: t('nav.design'), key: 'design', icon: () => h(NIcon, null, { default: () => h(ColorWandOutline) }) },
-  { label: t('nav.history'), key: 'history', icon: () => h(NIcon, null, { default: () => h(TimeOutline) }) }
+  { label: t('nav.design'), key: 'design', icon: () => h(NIcon, null, { default: () => h(ColorWandOutline) }) }
 ])
 
 const langOptions = [
@@ -66,31 +65,42 @@ onMounted(async () => {
         <n-layout has-sider style="height: 100vh">
           <n-layout-sider
             bordered
-            collapse-mode="width"
-            :collapsed-width="64"
             :width="220"
+            :collapsed-width="64"
             :collapsed="collapsed"
             show-trigger
             trigger-position="header"
-            style="background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)"
+            @update:collapsed="collapsed = $event"
+            style="background: linear-gradient(180deg, #312e81 0%, #1e1b4b 100%)"
           >
             <div style="display:flex; align-items:center; gap:10px; padding:18px 16px; color:#fff">
               <n-icon size="22" color="#a5b4fc"><sparkles-outline /></n-icon>
-              <span v-if="!collapsed" style="font-weight:700; font-size:16px">{{ t('app.name') }}</span>
+              <span v-if="!collapsed" style="font-weight:700; font-size:16px; white-space:nowrap">{{ t('app.name') }}</span>
             </div>
             <n-menu
               :value="currentKey"
               :items="menuItems"
+              inverted
               @update:value="onSelect"
-              style="background: transparent; color:#e0e7ff"
+              :theme-overrides="{
+                itemColor: 'rgba(0,0,0,0)',
+                itemTextColor: '#c7d2fe',
+                itemTextColorHover: '#ffffff',
+                itemTextColorActive: '#ffffff',
+                itemColorActive: '#6366f1',
+                itemColorActiveHover: '#4f46e5',
+                itemIconColor: '#c7d2fe',
+                itemIconColorActive: '#ffffff',
+                itemIconColorHover: '#ffffff'
+              }"
             />
           </n-layout-sider>
 
-          <n-layout>
+          <n-layout style="height: 100vh">
             <n-layout-header bordered style="padding: 0 20px; height: 56px; display:flex; align-items:center; justify-content:space-between; background:#fff">
               <div style="font-weight:600; color:#334155">{{ t(`nav.${currentKey}`) }}</div>
               <div style="display:flex; align-items:center; gap:14px">
-                <n-tag size="small" :bordered="false" type="info">
+                <n-tag size="small" :bordered="false" :type="Object.values(modelLoaded).some(Boolean) ? 'success' : 'default'">
                   {{ t('header.modelStatus') }}: {{ Object.values(modelLoaded).some(Boolean) ? t('header.loaded') : t('header.notLoaded') }}
                 </n-tag>
                 <n-select
@@ -107,13 +117,9 @@ onMounted(async () => {
               </div>
             </n-layout-header>
 
-            <n-layout-content style="overflow-y: auto; background:#f5f7fa">
+            <n-layout-content style="height: calc(100vh - 56px); overflow-y: auto; background:#f5f7fa">
               <router-view />
             </n-layout-content>
-
-            <n-layout-footer style="text-align:center; padding:12px; color:#94a3b8; font-size:12px">
-              Qwen3 TTS Studio · {{ gpuName }}
-            </n-layout-footer>
           </n-layout>
         </n-layout>
       </n-dialog-provider>

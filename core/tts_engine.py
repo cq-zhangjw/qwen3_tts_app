@@ -43,6 +43,7 @@ _CLONE_PROMPT_DIR = settings.DB_DIR / "clone_prompts"
 class TTSEngine:
     def __init__(self) -> None:
         self._lock = threading.RLock()
+        self._infer_lock = threading.RLock()  # serializes all GPU inference
         self._models: dict[str, object] = {}
         os.makedirs(_CLONE_PROMPT_DIR, exist_ok=True)
 
@@ -109,28 +110,29 @@ class TTSEngine:
 
         progress_cb(step_index, total, segment_info) optional callback.
         """
-        plan = build_segments(text, language, settings.MAX_CHARS_PER_SEGMENT)
-        if not plan:
-            raise ValueError("empty text after splitting")
+        with self._infer_lock:
+            plan = build_segments(text, language, settings.MAX_CHARS_PER_SEGMENT)
+            if not plan:
+                raise ValueError("empty text after splitting")
 
-        pieces: list[np.ndarray] = []
-        sr = None
-        t0 = time.time()
-        for i, seg in enumerate(plan):
-            wav, sr = self._synth_chunk(voice, seg["text"], seg["lang"], instruct)
-            pieces.append(wav)
-            seg["status"] = "done"
-            if progress_cb:
-                progress_cb(i + 1, len(plan), seg)
+            pieces: list[np.ndarray] = []
+            sr = None
+            t0 = time.time()
+            for i, seg in enumerate(plan):
+                wav, sr = self._synth_chunk(voice, seg["text"], seg["lang"], instruct)
+                pieces.append(wav)
+                seg["status"] = "done"
+                if progress_cb:
+                    progress_cb(i + 1, len(plan), seg)
 
-        merged = np.concatenate(pieces) if len(pieces) > 1 else pieces[0]
-        elapsed = time.time() - t0
-        return {
-            "wav": merged,
-            "sr": sr,
-            "segments": plan,
-            "elapsed_sec": round(elapsed, 2),
-        }
+            merged = np.concatenate(pieces) if len(pieces) > 1 else pieces[0]
+            elapsed = time.time() - t0
+            return {
+                "wav": merged,
+                "sr": sr,
+                "segments": plan,
+                "elapsed_sec": round(elapsed, 2),
+            }
 
     def save_wav(self, wav: np.ndarray, sr: int, filename: str) -> str:
         os.makedirs(settings.AUDIO_DIR, exist_ok=True)
@@ -141,10 +143,11 @@ class TTSEngine:
     # ---- voice clone ----
     def clone_extract(self, name: str, ref_audio_path: str, ref_text: str) -> dict:
         """Extract a clone prompt and persist it. Returns the voice record (without id)."""
-        model = self.base_model()
-        prompt = model.create_voice_clone_prompt(
-            ref_audio=ref_audio_path, ref_text=ref_text, x_vector_only_mode=False
-        )
+        with self._infer_lock:
+            model = self.base_model()
+            prompt = model.create_voice_clone_prompt(
+                ref_audio=ref_audio_path, ref_text=ref_text, x_vector_only_mode=False
+            )
         voice_id = f"v_clone_{uuid.uuid4().hex[:10]}"
         prompt_path = _CLONE_PROMPT_DIR / f"{voice_id}.pkl"
         with open(prompt_path, "wb") as f:
@@ -174,9 +177,10 @@ class TTSEngine:
     # ---- voice design ----
     def design_create(self, name: str, instruct: str, text: str, language: str) -> dict:
         """Generate a designed voice preview. Returns voice record + preview audio."""
-        model = self.design_model()
-        qwen_lang = QWEN_LANG_MAP.get(language, "Auto")
-        wavs, sr = model.generate_voice_design(text=text, language=qwen_lang, instruct=instruct)
+        with self._infer_lock:
+            model = self.design_model()
+            qwen_lang = QWEN_LANG_MAP.get(language, "Auto")
+            wavs, sr = model.generate_voice_design(text=text, language=qwen_lang, instruct=instruct)
         voice_id = f"v_design_{uuid.uuid4().hex[:10]}"
         filename = f"{voice_id}_preview.wav"
         audio_url = self.save_wav(np.asarray(wavs[0]).squeeze(), sr, filename)

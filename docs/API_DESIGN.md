@@ -101,6 +101,14 @@ HTTP 状态码仍遵循语义（200/201/400/404/500），`code` 为业务码。
 ### DELETE `/api/voices/{voice_id}`
 删除自定义音色（仅允许 `clone`/`design`，预设返回 400）。同时删除其预览音频文件。
 
+### POST `/api/voices/{voice_id}/preview`
+为任意音色（含预设 `preset:Speaker`）合成一段短试听并缓存。首次合成需几秒（占用 GPU），后续直接返回缓存文件。
+
+**响应 data：**
+```json
+{ "audio_url": "/audio/previews/preset_Vivian.wav", "cached": false }
+```
+
 ---
 
 ## 4. 音色克隆 `/api/voices/clone`
