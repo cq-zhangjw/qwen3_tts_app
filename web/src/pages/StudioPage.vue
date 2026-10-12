@@ -45,11 +45,13 @@ onMounted(async () => {
     presetVoices.value = sys.data.preset_voices || []
   } catch (e) { /* ignore */ }
   await loadCustom()
-  if (presetVoices.value.length) {
-    voiceZh.value = presetVoices.value[0].id
-    voiceJa.value = presetVoices.value[0].id
-    voiceEn.value = presetVoices.value[0].id
-  }
+  // Set defaults by language
+  const zh = presetVoices.value.find(v => v.id === 'p_zh_f_gentle')
+  const ja = presetVoices.value.find(v => v.id === 'p_ja_f_anna')
+  const en = presetVoices.value.find(v => v.id === 'p_en_f_gentle')
+  voiceZh.value = zh?.id || presetVoices.value[0]?.id || ''
+  voiceJa.value = ja?.id || presetVoices.value[0]?.id || ''
+  voiceEn.value = en?.id || presetVoices.value[0]?.id || ''
   await loadTasks()
   timer = window.setInterval(pollRunning, 1500)
 })

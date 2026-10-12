@@ -67,6 +67,12 @@ PRESET_VOICES = [
     {"id": "p_en_m_american", "speaker": "Aiden", "gender": "male", "language": "en",
      "instruct": "Read with an American-accented male voice",
      "label_zh": "美式男声 (Aiden)", "label_en": "American Male (Aiden)", "label_ja": "アメリカ男声 (Aiden)"},
+    {"id": "p_en_f_bright", "speaker": "Vivian", "gender": "female", "language": "en",
+     "instruct": "Read with a bright, cheerful young female voice",
+     "label_zh": "明亮女声 (Vivian)", "label_en": "Bright Female (Vivian)", "label_ja": "明るい女声 (Vivian)"},
+    {"id": "p_en_f_gentle", "speaker": "Serena", "gender": "female", "language": "en",
+     "instruct": "Read with a warm, gentle female voice",
+     "label_zh": "温柔女声 (Serena)", "label_en": "Gentle Female (Serena)", "label_ja": "優しい女声 (Serena)"},
 ]
 
 _CLONE_PROMPT_DIR = settings.DB_DIR / "clone_prompts"
