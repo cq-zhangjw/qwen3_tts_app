@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, h, onMounted, onUnmounted, ref } from 'vue'
-import { NTag, NButton, NProgress, NSelect, NInput, useMessage, NDropdown, NTooltip } from 'naive-ui'
+import { NTag, NButton, NProgress, NSelect, NInput, useMessage, NDropdown, NTooltip, NIcon } from 'naive-ui'
+import { TrashOutline } from '@vicons/ionicons5'
 import { useI18n } from 'vue-i18n'
 import {
   uploadNovel, listNovels, getNovel, dubNovel, redubNovelLine, editNovelLine,
@@ -95,6 +96,7 @@ async function onAnalyze() {
   analyzing.value = true
   try {
     current.value = (await analyzeNovel(current.value.id)).data
+    autoAssignVoices()
     message.success(t('novel.stepCharacters'))
   } finally { setTimeout(() => analyzing.value = false, 800) }
 }
@@ -111,6 +113,23 @@ async function onAddCharacter() {
     const res = await addNovelCharacter(current.value.id, { name: newCharName.value.trim() })
     current.value.characters.push(res.data); newCharName.value = ''
   } catch (e: any) { message.error(e?.response?.data?.detail || 'Error') }
+}
+
+function removeCharacter(cid: string) {
+  if (!current.value) return
+  current.value.characters = current.value.characters.filter((c: any) => c.id !== cid)
+}
+
+function autoAssignVoices() {
+  if (!current.value?.characters) return
+  const zhPresets = presetVoices.value.filter((v: any) => v.language === 'zh')
+  for (const c of current.value.characters) {
+    if (!c.voice_id) {
+      const gender = c.gender || 'male'
+      const match = zhPresets.find((v: any) => v.gender === gender)
+      c.voice_id = match?.id || zhPresets[0]?.id
+    }
+  }
 }
 
 async function saveCharacters() {
@@ -414,10 +433,14 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
         </div>
         <div v-else class="mt-16">
           <div v-for="c in current.characters" :key="c.id"
-            style="display:flex; align-items:center; gap:10px; padding:6px 0; flex-wrap:wrap">
-            <n-tag :bordered="false" :color="{ color: c.color + '22', textColor: c.color, borderColor: c.color }">{{ c.name }}</n-tag>
-            <n-select v-model:value="c.voice_id" :options="flatVoices" filterable size="small" style="width:260px" />
-            <n-input v-model:value="c.instruct" :placeholder="t('studio.instructPlaceholder')" size="small" style="flex:1; min-width:160px" />
+            style="display:flex; align-items:center; gap:8px; padding:6px 0; flex-wrap:wrap">
+            <n-input v-model:value="c.name" size="small" style="width:100px" />
+            <n-select v-model:value="c.gender" size="small" style="width:70px"
+              :options="[{label:'男',value:'male'},{label:'女',value:'female'},{label:'?',value:'unknown'}]" />
+            <n-select v-model:value="c.voice_id" :options="flatVoices" filterable size="small" style="width:240px" />
+            <n-button size="tiny" type="error" ghost @click="removeCharacter(c.id)">
+              <template #icon><n-icon><TrashOutline /></n-icon></template>
+            </n-button>
           </div>
           <div style="display:flex; gap:8px; margin-top:10px">
             <n-input v-model:value="newCharName" size="small" placeholder="手动追加角色名…" style="width:200px" @keyup.enter="onAddCharacter" />
